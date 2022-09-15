@@ -1,0 +1,35 @@
+{% extends 'messanger/base.html' %}
+{% load static %}
+
+{% block title %}
+    <title>Postman | Sign in</title>
+{% endblock title %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'messanger/login.css' %}">
+{% endblock styles %}
+
+
+{% block content %}
+    <div id="login">
+        <h1>Login</h1>
+        <form action="" method="post">
+            {% csrf_token %}
+            <div class="form_field">
+                <label for="user_id">Username</label>
+                <input type="text" name="username" id="user_id" placeholder="Username" required autofocus=True autocomplete="username">
+                <p class="help_text">Your username is case-sensitive</p>
+            </div>
+            
+            <div class="form_field">
+                <label for="password">Password</label>
+                <input type="password" minlength="6" name="password" id="password" placeholder="Password" required autocomplete="current-password">
+                <p class="help_text">Enter your correct password</p>
+            </div>
+            <button type="submit" id="login_btn" >Login</button>
+        </form>
+    </div>
+{% endblock content %}
+
+{% block script %}
+{% endblock script %}

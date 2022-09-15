@@ -1,0 +1,220 @@
+@import url('https://fonts.googleapis.com/css?family=Manrope');
+@import url('https://fonts.googleapis.com/css?family=Raleway');
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body{
+    font-family: 'Manrope';
+    background-color: #fff;
+    overflow-x: hidden !important;
+}
+
+.container{
+    margin: 0 auto;
+    width: 90%;
+}
+
+.showcase{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100vh;
+    margin-top: 50px;
+    /* border: 1px solid #e0e0e0; */
+}
+
+.showcase_img{
+    width: 60%;
+    height: 100%;
+}
+.showcase_img img{
+    width: 100%;
+    height: 100%;
+}
+
+.showcase_text{
+    display: flex;
+    flex-direction: column;
+    /* justify-content: center; */
+    align-items: flex-start;
+    width: 40%;
+    padding: 100px 50px;
+    /* border: 1px solid #e0e0e0; */
+}
+
+.showcase_text h1{
+    font-family: 'Raleway';
+    font-size: 70px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 20px;
+    z-index: 1;
+    text-shadow:  5px -4px 3px #ccc;
+}
+
+
+.showcase_text h3{
+    /* font-family: 'Raleway'; */
+    font-size: 24px;
+    font-weight: 700;
+    color: hsla(120, 61%, 50%, 0.8);
+    margin-bottom: 20px;
+}
+
+.showcase_text p{
+    font-size: 18px;
+    font-family: "Manrope";
+    font-weight: 700;
+    color: #555;
+    line-break: auto;
+    text-align: justify;
+    hyphens: auto;
+    margin-bottom: 20px;
+}
+
+.option{
+    /* align-self: flex-end; */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    margin-top: 50px;
+    gap: 0 15px;
+    /* border: 2px solid; */
+    background-color: hsla(120, 90%, 90%, 1);
+    border-radius: 5px;
+    transition: all 0.1s ease;
+    position: relative;
+    cursor: pointer;
+}
+
+.option:nth-of-type(2){
+    margin-top: 20px;
+}
+
+
+.option a{
+    font-family: 'Manrope';
+    font-size: 20px;
+    font-weight: 700;
+    color: #333;
+}
+
+.option img{
+    width: 30px;
+    height: 30px;
+}
+
+@media (hover:none){
+    .option{
+        transition: none;
+        background-color: hsla(120, 60%, 60%, 0.8);
+    }
+    .option a{
+        color: #f1f3f5;
+    }
+}
+
+@media (hover:hover){
+    .option:hover{
+        background-color: hsla(120, 60%, 56%, 0.8);
+        transform: scale(1.02);
+        box-shadow: 1px 3px 4px rgba(0,0,0,0.1);
+    }
+    .option:hover a{
+        color: #f1f3f5;
+    }
+}
+
+@media screen and (max-width: 1000px){
+    .showcase{
+        height: 90vh;
+    }
+    .showcase_text{
+        /* border: #ccc 1px solid; */
+        padding: 50px 20px;
+        align-items: flex-start;
+        justify-content: center;
+    }
+
+    .showcase_text h1{
+        font-size: 50px;
+    }
+
+    .showcase_text h3{
+        font-size: 20px;
+    }
+
+    .option{
+        margin-top: 20px;
+        padding: 10px 20px;
+    }
+}
+
+@media screen and (max-width: 726px){
+    
+        .showcase{
+            margin-top: 80px;
+            flex-direction: column;
+            height: auto;
+        }
+    
+        .showcase_img{
+            width: 100%;
+            height: 50vh;
+        }
+    
+        .showcase_text{
+            width: 100%;
+            padding: 50px 20px;
+            align-items: flex-start;
+            justify-content: center;
+        }
+    
+        .showcase_text h1{
+            font-size: 50px;
+        }
+    
+        .showcase_text h3{
+            font-size: 20px;
+        }
+
+        .showcase_text p{
+            font-size: 16px;
+        }
+    
+        .option{
+            margin-top: 20px;
+            padding: 10px 20px;
+        }
+}
+
+@media screen and (max-width: 480px){
+        
+    .showcase_img{
+        width: 100%;
+    }
+
+    .showcase_text{
+        width: 100%;
+        padding: 50px 20px;
+        align-items: flex-start;
+        justify-content: center;
+    }
+
+    .showcase_text h1{
+        font-size: 30px;
+    }
+
+    .showcase_text h3{
+        font-size: 18px;
+    }
+
+    .option a{
+        font-size: 16px;
+    }
+}

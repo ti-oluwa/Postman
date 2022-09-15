@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- {% block title %}
+    {% endblock %} -->
+
+    <!-- <link rel="stylesheet" href="{% static 'messanger/main.css' %}"> -->
+    <link rel="stylesheet" href="../../static/messanger/main.css">
+    <link rel="stylesheet" href="../../static/messanger/message.css">
+    <!-- {% block styles %}
+    {% endblock %} -->
+    
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="">Postman</a>
+            </div>
+            <div class="nav">
+                <ul>
+                    <li><a href="">SMS</a></li>
+                    <li><a href="">Mail</a></li>
+                    <li><a href="">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="be_container">
+
+            <div class="page_lead">
+                <div class="head">
+                    <h1>Messages</h1>
+                    <p>Messages you sent</p>
+                </div>
+                <button class="create_btn">
+                    <p>New SMS</p>
+                    <img src="../../static/images/message.svg" alt="">
+                </button>
+            </div>
+            <div class="border_btm"></div>
+            
+            <div class="no_messages">
+                <p>No messages yet</p>
+                <img src="../../static/images/folder.svg" alt="">
+            </div>
+
+            <div class="messages">
+
+                <div class="message">
+                    <div class="message_summary">
+                        <div>
+                            <h3>Sent to all contacts</h3>
+                            <p>July 31</p>
+                        </div>
+                        <p class="succinct">Lorem ipsum dolor sit amet consectetur adipisicing elit. Unde, obcaecati.</p>
+                    </div>
+                    <div class="message_content">
+                        <p>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Dolorum perferendis debitis rem quis fugiat sit corporis quas nam corrupti sed illo repudiandae quo explicabo inventore id placeat voluptatem, delectus obcaecati. Magni fuga, officia asperiores iste suscipit magnam culpa quia aliquam facere dicta perspiciatis voluptatem inventore eveniet, nostrum obcaecati eos saepe maxime accusamus vitae. Ipsam nostrum voluptate qui officia labore nihil.</p>
+                    </div>
+                </div>
+
+                <div class="message">
+                    <div class="message_summary">
+                        <div>
+                            <h3>Sent to many contacts</h3>
+                            <p>August 2</p>
+                        </div>
+                        <p class="succinct">Lorem ipsum dolor sit amet consectetur adipisicing elit. Unde, obcaecati.</p>
+                    </div>
+                    <div class="message_content">
+                        <p>Lorem, ipsum dolor sit amet consectetur adipisicing elit. Accusamus quibusdam provident sint distinctio, alias quaerat, possimus voluptatum ab ipsa odit laboriosam excepturi ex exercitationem sequi deleniti voluptatibus dolore placeat. Eos, perspiciatis! Ducimus commodi molestiae architecto, cupiditate temporibus at enim ratione tenetur optio ad similique eius quibusdam incidunt aut esse mollitia? Lorem ipsum dolor sit, amet consectetur adipisicing elit. Dolorum perferendis debitis rem quis fugiat sit corporis quas nam corrupti sed illo repudiandae quo explicabo inventore id placeat voluptatem, delectus obcaecati. Magni fuga, officia asperiores iste suscipit magnam culpa quia aliquam facere dicta perspiciatis voluptatem inventore eveniet, nostrum obcaecati eos saepe maxime accusamus vitae. Ipsam nostrum voluptate qui officia labore nihil.</p>
+                    </div>
+                </div>
+
+                <div class="message">
+                    <div class="message_summary">
+                        <div>
+                            <h3>Sent to +01-234-456</h3>
+                            <p>15:36</p>
+                        </div>
+                        <p class="succinct">Lorem ipsum dolor sit amet consectetur adipisicing elit. Unde, obcaecati.</p>
+                    </div>
+                    <div class="message_content">
+                        <p>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Dolorum perferendis debitis rem quis fugiat sit corporis quas nam corrupti sed illo repudiandae quo explicabo inventore id placeat voluptatem, delectus obcaecati. Magni fuga, officia asperiores iste suscipit magnam culpa quia aliquam facere dicta perspiciatis voluptatem inventore eveniet, nostrum obcaecati eos saepe maxime accusamus vitae. Ipsam nostrum voluptate qui officia labore nihil.</p>
+                    </div>
+                </div>
+
+                <div class="message">
+                    <div class="message_summary">
+                        <div>
+                            <h3>Sent to all contacts</h3>
+                            <p>July 31</p>
+                        </div>
+                        <p class="succinct">Lorem ipsum dolor sit amet consectetur adipisicing elit. Unde, obcaecati.</p>
+                    </div>
+                    <div class="message_content">
+                        <p>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Dolorum perferendis debitis rem quis fugiat sit corporis quas nam corrupti sed illo repudiandae quo explicabo inventore id placeat voluptatem, delectus obcaecati. Magni fuga, officia asperiores iste suscipit magnam culpa quia aliquam facere dicta perspiciatis voluptatem inventore eveniet, nostrum obcaecati eos saepe maxime accusamus vitae. Ipsam nostrum voluptate qui officia labore nihil.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <button class="create_btn_hover">
+                <p>New SMS</p>
+                <img src="../../static/images/message.svg" alt="">
+            </button>
+
+        </div>
+
+        <div class="contact_popup">
+            <div class="pill"></div>
+            <div class="popup_head">
+                <p>Send to</p>
+                <img src="../../static/images/cancel.svg" alt="">
+            </div>
+            <div class="popup_body">
+
+                <form id="add_form" enctype="multipart/form-data" class="add_contact">
+                    <div>
+                        <img src="../../static/images/add-user.svg" alt="">
+                        <label for="phone_no">Add phone numbers</label>
+                    </div>
+                    <input type="tel" name="phone_number" id="phone_no" pattern="^\+(?:[0-9] ?){11,14}[0-9]$" placeholder="+23409...">
+                    <label for="phone_no_file">Select file (*.txt, *.csv)[max-1MB]</label>
+                    <div class="file_name">
+                        <p>No file selected</p>
+                    </div>
+                    <input type="file" id="phone_no_file" accept=".txt, .csv">
+                    <div class="help">
+                        <div>
+                            <img src="../../static/images/info2.svg" alt="">
+                            <p>Info</p>
+                        </div>
+                        <p class="text">
+                            The phone number you enter should conform with the E.164 number plan! 
+                            You can upload a text file containing phone numbers. Ensure they're separated with comma's or newlines
+                        </p>
+                    </div>
+                    <button id="done" disabled>
+                        <p>Proceed</p>
+                        <img src="../../static/images/check1.svg" alt="">
+                    </button>
+                </form>
+
+                <form id="select_form" class="select">
+                    <div class="no_contact">
+                        <p>No contacts yet</p>
+                        <img src="../../static/images/empty2.svg" alt="">
+                    </div>
+                    <div class="all">
+                        <input type="checkbox" name="all" id="all">
+                        <div class="check_mark"></div>
+                        <label for="all">Select all</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                    <div class="contact">
+                        <input type="checkbox" name="contact" id="contact" value="+23-0178-234">
+                        <div class="check_mark"></div>
+                        <label for="contact">+23-0178-234</label>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <form action="" id="message_form" class="message_popup">
+            <label for="message">Enter message</label>
+            <div>
+                <textarea id="message" placeholder="Enter message here" required></textarea>
+                <img id="send_btn" src="../../static/images/send2.svg" alt="send">
+            </div>
+        </form>
+
+        <div class="confirm_send_popup">
+            <img class="image" src="../../static/images/mail-confirm.svg" alt="confirm">
+            <p>Just to be sure</p>
+            <div class="btns">
+                <div class="yes">
+                    <img src="../../static/images/tick.svg" alt="">
+                </div>
+                <div class="no">
+                    <img src="../../static/images/cancel.svg" alt="">
+                </div>
+            </div>
+        </div>
+
+        <div class="sending_popup">
+            <img class="image" src="../../static/images/sending.gif" alt="confirm">
+            <p>Sending SMS</p>
+        </div>
+        
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>Postman &copy; 2022</p>
+        </div>
+    </footer>
+</body>
+<script type="text/javascript">
+    function returnFileSize(number) {
+        if (number < 1024) {
+          return `${number} bytes`;
+        } else if (number >= 1024 && number < 1048576) {
+          return `${(number / 1024).toFixed(1)} KB`;
+        } else if (number >= 1048576) {
+          return `${(number / 1048576).toFixed(1)} MB`;
+        };
+    };
+
+    function fileSizeDoesNotExceed(file_size, max_file_size){
+        if (file_size > max_file_size){
+            return false;
+        }
+        return true;
+    }
+
+    
+    // shows and hides header and create button on scroll
+    var oldScrollPosition = 0;
+    window.onscroll = (e) => {
+        var scrollPosition = document.documentElement.scrollTop;
+        if (scrollPosition >= window.innerHeight * 0.2) {
+            document.querySelector('header').classList.add('hide');
+            document.querySelector('.create_btn_hover').classList.add('show_hover_btn');
+            oldScrollPosition = scrollPosition       
+        }
+        else{
+            document.querySelector('header').classList.remove('hide');
+            document.querySelector('.create_btn_hover').classList.remove('show_hover_btn');
+            oldScrollPosition = scrollPosition;
+        };
+    }
+
+
+    window.onload = () => {
+        var messages = document.querySelectorAll('.message');
+        var contacts = document.querySelectorAll('.contact');
+
+        if (messages.length != 0) {
+            // messages[0].scrollIntoView();
+            // shows and hides message content
+        
+            messages.forEach(message => {
+                message.querySelector('.message_summary').addEventListener('click', (e) => {
+                    if (!document.querySelector('.contact_popup').classList.contains('contact_popup_open') && !document.querySelector('.message_popup').classList.contains('show_message_popup')) {   
+                        message.querySelector('.message_content').classList.toggle('message_content_open');
+                        message.querySelector('.message_summary').classList.toggle('adjust_border');
+                        message.querySelector('.message_content').querySelector('p').classList.toggle('show');
+                    }  
+                })
+            });
+
+
+            // shows and hides contact popup
+            [document.querySelector('.create_btn'), document.querySelector('.create_btn_hover')].forEach(create_btn =>{
+                create_btn.addEventListener('click', () => {
+                    document.querySelector('.contact_popup').classList.add('contact_popup_open');
+                    document.querySelector('body').classList.toggle('stop_scroll');
+                    document.querySelectorAll('button').forEach(button => {
+                        if(button.id != 'done'){
+                            button.disabled = true;
+                            button.style.pointerEvents = "none";
+                        };
+                    });
+                });
+            })
+            document.querySelector('.contact_popup').querySelector('img').addEventListener('click', () => {
+                document.querySelector('.contact_popup').classList.remove('contact_popup_open');
+                document.querySelector('body').classList.toggle('stop_scroll');
+                document.querySelectorAll('button').forEach(button => {
+                    button.disabled = false;
+                    button.style.pointerEvents = "auto";
+                });
+            });
+        }
+        else{
+            // shows no messages
+            document.querySelector('.no_messages').classList.add('show_no_messages');
+        }
+        
+        // shows and hides contact popup
+        [document.querySelector('.create_btn'), document.querySelector('.create_btn_hover')].forEach(create_btn =>{
+            create_btn.addEventListener('click', () => {
+                document.querySelector('.contact_popup').classList.add('contact_popup_open');
+                document.querySelector('body').classList.add('stop_scroll');
+                document.querySelectorAll('button').forEach(button => {
+                    if(button.id != 'done'){
+                        button.disabled = true;
+                        button.style.pointerEvents = "none";
+                    };
+                });
+            });
+        })
+        document.querySelector('.contact_popup').querySelector('img').addEventListener('click', () => {
+            document.querySelector('.contact_popup').classList.remove('contact_popup_open');
+            document.querySelector('body').classList.remove('stop_scroll');
+            document.querySelectorAll('form').forEach(form => {
+                form.reset();
+                document.querySelector('.file_name').querySelector('p').innerText = 'No file selected';
+            });
+            document.querySelectorAll('button').forEach(button => {
+                button.disabled = false;
+                button.style.pointerEvents = "auto";
+            });
+        });
+
+        if (contacts.length != 0) {
+            // removes no contacts message
+            document.querySelector('.no_contact').classList.remove('show_no_contact')
+            // ticks select all input
+            document.querySelector('.all').querySelector('.check_mark').addEventListener('click', () => {
+                document.querySelector('.all').querySelector('input').checked = false;
+            });
+            //unticks select all input
+            document.querySelector('.all').querySelector('input').addEventListener('click', () => {
+                document.querySelector('.all').querySelector('input').checked = true;
+            });
+            // ticks and unticks all checkbox based on select all input value
+            [document.querySelector('.all').querySelector('input'), document.querySelector('.all').querySelector('.check_mark')].forEach( item => {
+                item.addEventListener('click', () => {
+                    contacts.forEach(contact => {
+                        contact.querySelector('input').checked = document.querySelector('.all').querySelector('input').checked;
+                    })
+                })
+            });
+
+            // unticks checkbox
+            contacts.forEach(contact => {
+                contact.querySelector('.check_mark').addEventListener('click', () => {
+                    contact.querySelector('input').checked = false;
+                    //unticks and ticks select all checkbox if all contacts are ticked or unticked
+                    var unticked = [];
+                    contacts.forEach(contact => {
+                        unticked.push(contact.querySelector('input').checked)
+                    });
+                    if (unticked.some(e => e == false) == true) {
+                        document.querySelector('.all').querySelector('input').checked = false;
+                    }
+                    else if(unticked.some(e => e == false) == false){
+                        document.querySelector('.all').querySelector('input').checked = true;
+                    }
+                });
+            })
+            //ticks checkbox
+            contacts.forEach(contact => {
+                contact.querySelector('input').addEventListener('click', () => {
+                    contact.querySelector('input').checked = true;
+                    //unticks and ticks all's checkbox if all contacts are ticked or unticked
+                    var unticked = [];
+                    contacts.forEach(contact => {
+                        unticked.push(contact.querySelector('input').checked)
+                    });
+                    if (unticked.some(e => e == false) == true) {
+                        document.querySelector('.all').querySelector('input').checked = false;
+                    }
+                    else if(unticked.some(e => e == false) == false){
+                        document.querySelector('.all').querySelector('input').checked = true;
+                    };
+                });
+            });
+
+            // events related to the contact popup
+            document.querySelector('.popup_body').addEventListener('pointerover', () => {
+                var addInputs = document.querySelector('.add_contact').querySelectorAll('input');
+                var selectInputs = document.querySelector('.select').querySelectorAll('input');
+                var proceedButton = document.querySelector('#done');
+                var falseValues = [];
+                var empty = true;
+                // returns all false fields in the checkbox fields
+                selectInputs.forEach(input => {
+                    if(input.checked == false){
+                        falseValues.push(input)
+                    }
+                });
+                //set the value of var empty based on the text and file input fields 
+                if (addInputs[0].value != ''){
+                    empty = false
+                }
+                if (addInputs[1].files.length != 0){
+                    empty = false
+                }
+                // enables and disables the proceed button based on the value of var empty and falseValues
+                // checks if all check boxes are unchecked and all text and file fields are empty and disables or enables the proceed button
+                if (falseValues.length == selectInputs.length){
+                    if (empty == true){
+                        proceedButton.disabled = true;
+                        proceedButton.style.pointerEvents = 'none';
+                    }
+                    else{
+                        if (document.querySelector('#phone_no').checkValidity() != true){
+                            document.querySelector('#phone_no').style.borderColor = 'hsla(0, 61%, 70%, 0.8)';
+                            proceedButton.disabled = true;
+                            proceedButton.style.pointerEvents = 'none';
+                        }
+                        else{
+                            document.querySelector('#phone_no').style.borderColor = 'hsla(120, 61%, 70%, 0.8)';
+                            proceedButton.disabled = false;
+                            proceedButton.style.pointerEvents = 'auto';
+                        };
+
+                        if(document.querySelector('#phone_no_file').files.length != 0){
+                            var file_name = document.querySelector('#phone_no_file').files[0].name;
+                            var file_size_int = document.querySelector('#phone_no_file').files[0].size;
+                            var file_size = returnFileSize(file_size_int);
+                            document.querySelector('.file_name').querySelector('p').innerText = file_name + ' (' + file_size + ')';
+                            if (fileSizeDoesNotExceed(file_size_int, 1048576)){
+                                proceedButton.disabled = false;
+                                proceedButton.style.pointerEvents = 'auto';
+                            }
+                            else{
+                                proceedButton.disabled = true;
+                                proceedButton.style.pointerEvents = 'none';
+                                document.querySelector('.file_name').style.backgroundColor = 'hsla(0, 61%, 70%, 0.8)';
+                                document.querySelector('#phone_no_file').addEventListener('click', ()=> {
+                                    document.querySelector('.file_name').style.backgroundColor = '';
+                                });
+                            };
+                        };
+                    };
+                    if (document.querySelector('#phone_no').value == ''){
+                        document.querySelector('#phone_no').style.borderColor = '';
+                    };
+
+                }
+
+                else{
+                    proceedButton.disabled = false;
+                    proceedButton.style.pointerEvents = 'auto';
+
+                    if (empty == false){
+                        if (document.querySelector('#phone_no').checkValidity() != true){
+                            document.querySelector('#phone_no').style.borderColor = 'hsla(0, 61%, 70%, 0.8)';
+                            proceedButton.disabled = true;
+                            proceedButton.style.pointerEvents = 'none';
+                        }
+                        else{
+                            document.querySelector('#phone_no').style.borderColor = 'hsla(120, 61%, 70%, 0.8)';
+                            proceedButton.disabled = false;
+                            proceedButton.style.pointerEvents = 'auto';
+                        };
+
+                        if(document.querySelector('#phone_no_file').files.length != 0){
+                            var file_name = document.querySelector('#phone_no_file').files[0].name;
+                            var file_size_int = document.querySelector('#phone_no_file').files[0].size;
+                            var file_size = returnFileSize(file_size_int);
+                            document.querySelector('.file_name').querySelector('p').innerText = file_name + ' (' + file_size + ')';
+                            if (fileSizeDoesNotExceed(file_size_int, 1048576)){
+                                proceedButton.disabled = false;
+                                proceedButton.style.pointerEvents = 'auto';
+                            }
+                            else{
+                                proceedButton.disabled=true;
+                                proceedButton.style.pointerEvents='none';
+                                document.querySelector('.file_name').style.backgroundColor = 'hsla(0, 61%, 70%, 0.8)';
+                                document.querySelector('#phone_no_file').addEventListener('click', ()=> {
+                                    document.querySelector('.file_name').style.backgroundColor = '';
+                                });
+                            };
+                        };
+                    }
+                        
+                    if (document.querySelector('#phone_no').value == ''){
+                        document.querySelector('#phone_no').style.borderColor = '';
+                    };
+                };
+            });
+
+        }
+        else{
+            // shows no contacts message
+            document.querySelector('.all').style.display = 'none';
+            document.querySelector('.no_contact').classList.add('show_no_contact')
+
+            // events related to the contact popup
+            document.querySelector('.popup_body').addEventListener('pointerover', () => {
+                var addInputs = document.querySelector('.add_contact').querySelectorAll('input');
+                var proceedButton = document.querySelector('#done');
+                var empty = true;
+                
+                //set the value of var empty based on the text and file input fields 
+                if (addInputs[0].value != ''){
+                    empty = false
+                }
+                if (addInputs[1].files.length != 0){
+                    empty = false
+                }
+                // checks text and file fields are empty and disables or enables the proceed button
+                if (empty == true){
+                    proceedButton.disabled = true;
+                    proceedButton.style.pointerEvents = 'none';
+                }
+                else{
+                    
+                    if (document.querySelector('#phone_no').checkValidity() != true){
+                        document.querySelector('#phone_no').style.borderColor = 'hsla(0, 61%, 70%, 0.8)';
+                        proceedButton.disabled = true;
+                        proceedButton.style.pointerEvents = 'none';
+                    }
+                    else{
+                        document.querySelector('#phone_no').style.borderColor = 'hsla(120, 61%, 70%, 0.8)';
+                        proceedButton.disabled = false;
+                        proceedButton.style.pointerEvents = 'auto';
+                    };
+
+                    if(document.querySelector('#phone_no_file').files.length != 0){
+                        var file_name = document.querySelector('#phone_no_file').files[0].name;
+                        var file_size_int = document.querySelector('#phone_no_file').files[0].size;
+                        var file_size = returnFileSize(file_size_int);
+                        document.querySelector('.file_name').querySelector('p').innerText = file_name + ' (' + file_size + ')';
+                        if (fileSizeDoesNotExceed(file_size_int, 1048576)){
+                            proceedButton.disabled = false;
+                            proceedButton.style.pointerEvents = 'auto';
+                        }
+                        else{
+                            proceedButton.disabled = true;
+                            proceedButton.style.pointerEvents = 'none';
+                            document.querySelector('.file_name').style.backgroundColor = 'hsla(0, 61%, 70%, 0.8)';
+                            document.querySelector('#phone_no_file').addEventListener('click', ()=> {
+                                document.querySelector('.file_name').style.backgroundColor = '';
+                            });
+                        };
+                    };
+                };
+
+                if (document.querySelector('#phone_no').value == ''){
+                    document.querySelector('#phone_no').style.borderColor = '';
+                };
+            });
+        }
+
+    };
+
+    window.onclick = (event) => {
+        document.querySelector('#done').addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            document.querySelector('.contact_popup').classList.remove('contact_popup_open');
+            document.querySelector('body').classList.remove('stop_scroll');
+            setTimeout(() => {
+                document.querySelector('.message_popup').classList.add('show_message_popup');
+            }, 500);
+            document.querySelectorAll('button').forEach(button => {
+                button.disabled = true;
+                button.style.pointerEvents = "none";
+            });
+        });
+
+        if (!document.querySelector('.message_popup').contains(event.target) && document.querySelector('.message_popup').classList.contains('show_message_popup') && !document.querySelector('.confirm_send_popup').contains(event.target) && !document.querySelector('.confirm_send_popup').classList.contains('show_confirm_send_popup')) {
+            document.querySelector('.message_popup').classList.remove('show_message_popup');
+            document.querySelectorAll('form').forEach(form => {
+                form.reset();
+                document.querySelector('.file_name').querySelector('p').innerText = 'No file selected';
+            });
+            document.querySelectorAll('button').forEach(button => {
+                button.disabled = false;
+                button.style.pointerEvents = "auto";
+            });
+        };
+
+        document.querySelector('#send_btn').addEventListener('click', (e) => {
+            var message = document.querySelector('#message').value;
+            if (message != '' && message.length >= 10 && message.length <= 250){
+                document.querySelector('.confirm_send_popup').classList.add('show_confirm_send_popup');
+                document.querySelector('body').classList.add('stop_scroll');
+            }
+            else{
+                document.querySelector('#message').value = '';
+                document.querySelector('#message').placeholder = 'Message must be between 10 and 250 characters';
+                document.querySelector('#message').style.borderColor = 'hsla(0, 61%, 70%, 0.8)';
+                document.querySelector('#message').addEventListener('input', () => {
+                    document.querySelector('#message').placeholder = 'Enter message';
+                    document.querySelector('#message').style.borderColor = '#ccc';
+                });
+            }
+            
+        });
+
+        document.querySelector('.yes').addEventListener('click', (e) => {
+            document.querySelector('.confirm_send_popup').classList.remove('show_confirm_send_popup');
+            document.querySelector('.message_popup').classList.remove('show_message_popup');
+            document.querySelector('body').classList.remove('stop_scroll');
+            document.querySelectorAll('button').forEach(button => {
+                button.disabled = false;
+                button.style.pointerEvents = "auto";
+            });
+        });
+
+        document.querySelector('.no').addEventListener('click', (e) => {
+            document.querySelector('.confirm_send_popup').classList.remove('show_confirm_send_popup');
+            document.querySelector('body').classList.remove('stop_scroll');
+        });
+ 
+    };
+
+    
+</script>
+</html>

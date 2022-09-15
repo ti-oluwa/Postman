@@ -1,0 +1,81 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block title %}
+    {% endblock title%}
+
+    <link rel="stylesheet" href="{% static 'messanger/main.css' %}">
+    {% block styles %}
+    {% endblock styles %}
+    
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="{% url 'home' %}">Postman</a>
+            </div>
+            <div class="nav">
+                <ul>
+                    <li><a href="{% url 'messages' %}">SMS</a></li>
+                    <li><a href="{% url 'emails' %}">Mail</a></li>
+                    {% if request.user.is_authenticated %}
+                        <li><a href="{% url 'logout' %}">Logout</a></li>
+                    {% else %}
+                        <li><a href="{% url 'login' %}">Login</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        {% block content %}
+        {% endblock %}
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p>Postman &copy; 2022</p>
+        </div>
+    </footer>
+</body>
+<script type="text/javascript">
+    // shows and hides header on scroll
+    var oldScrollPosition = 0;
+    window.onscroll = (e) => {
+        var scrollPosition = document.documentElement.scrollTop;
+        if (scrollPosition >= window.innerHeight * 0.2 && scrollPosition > oldScrollPosition) {
+            document.querySelector('header').classList.add('hide');
+            oldScrollPosition = scrollPosition       
+        }
+        else{
+            document.querySelector('header').classList.remove('hide');
+            oldScrollPosition = scrollPosition;
+        };
+
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% block script %}
+{% endblock script%}
+</html>

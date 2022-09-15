@@ -1,0 +1,192 @@
+@import url('https://fonts.googleapis.com/css?family=Manrope');
+@import url('https://fonts.googleapis.com/css?family=Raleway');
+@import url('https://fonts.googleapis.com/css?family=DM+Sans');
+
+:root{
+    --text-muted-color: #d5dce5;
+    --text-pop-color: #373b3f;
+    --heading-color: #0e1318;
+    --sub-heading-color: #1f1f1f;
+    --body-bg-color: #fff;
+    --text-color: #2f2f2f2f;
+    --text-extra: #1f2f3f;
+    --bg-primary: #f1f3f5;
+    --bg-secondary:#e1e1e1;
+    --bg-tertiary:#f6f6f6;
+    --input-bg-color: #f1f3f5;
+    --quote-text-color: #024445;
+    --quote-text-strong: #057778;
+    --input-text-color:#6a6d71;
+    --input-border-color:var(--text-muted-color);
+    --input-border-color-focus:var(--link-hover-color);
+    --link-highlight-color:#8321e9;
+    --link-hover-color:#caa0f6;
+    --button-bg-color:#6720b2;
+    --button-bg-color-hover-tertiary:#e1e4e7;
+    --button-bg-color-hover-primary:#f1f3f5;
+    --button-bg-color-hover-secondary:#922ffb;
+    --button-bg-color-active:#7425c7;
+}
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.container{
+    margin: 0 auto;
+    width: 90%;
+}
+
+body{
+    font-family: "Raleway";  
+    overflow-wrap: break-word;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    font-smooth: always !important;
+    -webkit-text-size-adjust: none;
+    color: var(--text-color);
+    background-image: -webkit-linear-gradient(135deg, #fff, #c7f7b6);
+    background-image: -o-linear-gradient(135deg, #fff, #c7f7b6);
+    background-image: -moz-linear-gradient(135deg, #fff, #c7f7b6);
+    background-image: -ms-linear-gradient(135deg, #fff, #c7f7b6);
+    background-image: linear-gradient(135deg, #fff, #c7f7b6);
+
+}
+
+
+h1,h2, h3, h4, h5, h6{
+    font-family: "Manrope";
+    color: var(--heading-color);
+}
+
+p, li, a{
+    font-family: "Raleway";
+    color: var(--text-color);
+}
+
+::placeholder{
+    color: var(--input-text-color);
+    font-family: "Manrope";
+}
+
+input{
+    font-family: "Manrope";
+    border-radius: 6px;
+    border: 1px solid var(--input-border-color);
+    outline: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+input:focus-within{
+    border: 1px solid hsla(120, 60%, 70%) !important;
+    margin: -1px !important;
+}
+
+input:not(:placeholder-shown){
+    border: 1px solid hsla(120, 60%, 70%) !important;
+    margin: -1px !important;
+}
+
+label{
+    color: var(--sub-heading-color);
+    font-weight: 700;
+}
+
+button{
+    font-family: "Manrope";
+    border-radius: 4px;
+    border: none;
+    font-size: 18px;
+    font-weight: 500;
+    padding: 10px 20px;
+    outline: none !important;
+    transition: all 0.1s ease-out;
+}
+
+button:disabled{
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+
+#login{
+    background-color: var(--body-bg-color);
+    padding: 30px 40px;
+    border-radius: 8px;
+    min-width: 300px;
+    height: auto;
+    max-width: 500px;
+    position: absolute;
+    top: calc(50% + 50px);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid #ccc;
+}
+
+#login h1{
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    margin-top: 0;
+}
+
+.form_field{
+    display: flex;
+    flex-direction: column;
+    gap: 10px 0;
+    margin-bottom: 10px;
+}
+
+.help_text{
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--text-extra);
+    opacity: 0.8;
+}
+
+.form_field input{
+    border: none;
+    padding: 10px;
+    width: 100%;
+    background-color: var(--input-bg-color);
+    box-sizing: border-box;
+    font-family: "Manrope";
+    color: var(--text-pop-color);
+}
+
+#login_btn{
+    background-color: hsla(120, 60%, 65%);
+    color: #fff;
+    width: 100%;
+    margin: 20px 0;
+}
+
+#login_btn:hover{
+    background-color: hsla(120, 60%, 60%);
+    color: var(--body-bg-color);
+    box-shadow: 0px 4px 4px rgba(0,0,0,0.25);
+}
+
+#login_btn:active{
+    background-color: #ccc;
+    color: var(--body-bg-color);
+}
+
+@media (hover:hover){
+    #login_btn:hover{
+        background-color: hsla(120, 60%, 60%);
+        color: var(--body-bg-color);
+        box-shadow: 0px 4px 4px rgba(0,0,0,0.25);
+    }
+}
+
+@media (hover:none){
+    #login_btn{
+        background-color: hsla(120, 60%, 60%);
+    }
+}

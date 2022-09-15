@@ -1,0 +1,36 @@
+{% extends 'messanger/base.html' %}
+
+{% load static %}
+{% block title %}
+    <title>Postman</title>
+{% endblock title %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'messanger/home.css' %}">
+{% endblock styles %}
+
+
+{% block content %}
+    <div class="showcase">
+        <div class="showcase_img">
+            <img src="{% static 'images/home2.svg' %}" alt="">
+        </div>
+        <div class="showcase_text">
+            <h1>Welcome</h1>
+            <h3>SMS and emails made easy</h3>
+            <p>Postman is a simple and easy to use messaging app. It is a great way to connect with the world.</p>
+            <div class="option">
+                <a href="{% url 'messages' %}?send">Send SMS</a>
+                <img src="{% static 'images/email_send.svg' %}" alt="">
+            </div>
+            <div class="option">
+                <a href="{% url 'emails' %}?send">Send Mail</a>
+                <img src="{% static 'images/mail1.svg' %}" alt="">
+            </div>
+        </div>
+        
+    </div>
+{% endblock %}
+
+        
+ 
