@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% block title %}
-    {% endblock title%}
+    {% endblock title %}
 
     <link rel="stylesheet" href="{% static 'messanger/main.css' %}">
     {% block styles %}
@@ -24,6 +24,7 @@
                     <li><a href="{% url 'messages' %}">SMS</a></li>
                     <li><a href="{% url 'emails' %}">Mail</a></li>
                     {% if request.user.is_authenticated %}
+                        <li><a href="{% url 'settings' %}">Settings</a></li>
                         <li><a href="{% url 'logout' %}">Logout</a></li>
                     {% else %}
                         <li><a href="{% url 'login' %}">Login</a></li>
@@ -40,7 +41,12 @@
     
     <footer>
         <div class="container">
-            <p>Postman &copy; 2022</p>
+            {% now "Y" as current_year %}
+            <p>
+                {% block translate %}
+                Postman &copy; {{ current_year }}
+                {% endblock translate %}
+            </p>
         </div>
     </footer>
 </body>

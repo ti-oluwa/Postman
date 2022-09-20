@@ -354,3 +354,12 @@ footer .container p{
 
 }
 
+@media screen and (max-width: 300px){
+    header .container .nav ul{
+        gap: 0 5px;
+    }
+    header .container .nav ul li a{
+        font-size: 12px;
+    }
+}
+

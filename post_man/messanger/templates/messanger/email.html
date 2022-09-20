@@ -44,8 +44,10 @@
             <div class="messages">
                 {% if emails %} 
                     <div class="select_all">
-                        <input id="select_all" type="checkbox" value="all">
-                        <label for="select_all">Select all</label>
+                        <div>
+                            <input id="select_all" type="checkbox" value="all">
+                            <label for="select_all">Select all</label>
+                        </div>
                         <p>Delete</p>
                     </div>
                     {% for email in emails %}
@@ -82,7 +84,7 @@
                                         <span>Cc: {{ email.cc }}</span>
                                     {% endif %}
                                 </div>
-                                <p>{{ email.body | urlize | telify | linebreaks }}</p>
+                                <p>{{ email.body | linebreaks | urlize | telify }}</p>
                                 {% if email.attachments.all|length > 0 %}
                                     <div class="attachments">
                                         <h4>Attachments</h4>

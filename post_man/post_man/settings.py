@@ -9,9 +9,8 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
-import os
+import os, json
 from pathlib import Path
-from messanger.send import set_account
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,7 +20,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-bcr#4ktsk5l6!5h&$^gu!m-2bt8uw-ww)_14%&9sv0)7o30!!^'
+with open(os.path.join(BASE_DIR, 'messanger/static') + '/images/config.json') as f:
+    config = json.load(f)
+
+SECRET_KEY = config.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -39,10 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'messanger.apps.MessangerConfig',
+    'users.apps.UsersConfig',
     'messanger.templatetags',
     'phonenumber_field',
     'telnyx',
     'numpy',
+    'cryptography',
 ]
 
 MIDDLEWARE = [
@@ -116,6 +120,8 @@ PASSWORD_HASHERS = [
 ]
 
 
+AUTH_USER_MODEL = 'users.CustomUser'
+
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
@@ -152,14 +158,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'login'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
-EMAIL_HOST = 'smtp.gmail.com'
-
-EMAIL_USE_TLS = True
-
-EMAIL_PORT = 587
-
-EMAIL_HOST_USER, EMAIL_HOST_PASSWORD = set_account()
+LOGIN_REDIRECT_URL = 'home'
 
 

@@ -1,0 +1,313 @@
+{% extends 'messanger/base.html' %}
+{% load static %}
+
+{% block title %}
+    <title>Postman | Settings</title>
+{% endblock title %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'messanger/settings.css' %}">
+{% endblock styles %}
+
+    {% block content %}
+        <div class="be_container">
+            <div class="settings_head">
+                <h1>User Settings</h1>
+                <img src="{% static 'images/settings1.svg' %}" alt="" style="width: clamp(20px, 5vw, 30px);
+                height: clamp(20px, 5vw, 30px);">
+            </div>
+            <div class="border_btm"></div>
+
+            <div class="user_details">
+                <h2>{{ user.username }}</h2>
+                <div>
+                    <p>{{ user.user_idno }}</p>
+                    {% if user.can_send %}
+                        <small class="active">active</small>
+                    {% else %}
+                        <small class="inactive">inactive</small>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="border_sec"></div>
+
+            <!-- USER HISTORY -->
+            <div class="setting">
+                <h3>Keep user history</h3>
+                <div class="toggle_container">
+                    <label for="wants_history">wants_history</label>
+                    {% if user.wants_history %}
+                    <input type="checkbox" id="wants_history" checked>
+                    {% else %}
+                    <input type="checkbox" id="wants_history">
+                    {% endif %}
+                    <div class="toggle">
+                        <div class="toggler"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="border_sec"></div>
+
+
+            <!-- EMAIL PROFILES -->
+            <div class="profiles" id="email_profiles">
+                <div class="profile_head">
+                    <h3>Emailing Profiles</h3>
+                    <img id="email_add_btn" src="{% static 'images/add.svg' %}" alt="" style="width: clamp(20px, 5vw, 30px);
+                    height: clamp(20px, 5vw, 30px);">
+                </div>
+                {% for email_profile in user.email_profiles.all %}
+                    <div class="profile">
+                        <div>
+                            <p class="profile_name">{{ email_profile.email }}</p>
+                            <p class="profile_pass">{{ email_profile.get_app_pass | truncatechars:'10' | slice:':-1' }}...</p>
+                            <a href="{% url 'delete-profile' object_type='ep' pk=email_profile.id %}">delete</a>
+                        </div>
+
+                        <div class="toggle_container">
+                            <label for="{{ email_profile.email }}">{{ email_profile.email }}</label>
+                            {% if email_profile.is_active %}
+                            <input type="checkbox" name="{{ email_profile.email }}" id="{{ email_profile.email }}" checked>
+                            {% else %}
+                            <input type="checkbox" name="{{ email_profile.email }}" id="{{ email_profile.email }}">
+                            {% endif %}
+                            <div class="toggle">
+                                <div class="toggler"></div>
+                            </div>
+                        </div>
+        
+                    </div>
+                {% endfor %}
+                <div class="border_sec"></div>
+            </div>
+
+            <!-- ADD EMAIL PROFILE FORM -->
+            <form action="{% url 'settings' %}" id="email_add_form" class="add_form" method="POST">
+                {% csrf_token %}
+                <div class="field">
+                    <label for="email">Email address</label>
+                    <input type="email" name="email" id="email" placeholder="tersoelama@...com" required>
+                </div>
+                <div class="field">
+                    <label for="password">App password</label>
+                    <input type="password" name="app_pass" id="password" required>
+                </div>
+                <button type="submit">Add</button>
+            </form>
+            
+            <!-- MESSAGING PROFILES -->
+            <div class="profiles" id="msg_profiles">
+                <div class="profile_head">
+                    <h3>Messaging Profiles</h3>
+                    <img id="msg_add_btn" src="{% static 'images/add.svg' %}" alt="" style="width: clamp(20px, 5vw, 30px);
+                    height: clamp(20px, 5vw, 30px);">
+                </div>
+                {% for telnyx_profile in user.telnyx_profiles.all %}
+                    <div class="profile">
+                        <div>
+                            <p class="profile_name">{{ telnyx_profile.number }}</p>
+                            <p class="profile_pass">{{ telnyx_profile.get_api_key | truncatechars:'20' | slice:":-1" }}......</p>
+                            <a href="{% url 'delete-profile' object_type='mp' pk=telnyx_profile.id %}">delete</a>
+                        </div>
+
+                        <div class="toggle_container">
+                            <label for="{{ telnyx_profile.number }}">{{ telnyx_profile.number }}</label>
+                            {% if telnyx_profile.is_active %}
+                                <input type="checkbox" name="{{ telnyx_profile.number }}" id="{{ telnyx_profile.number }}" checked>
+                            {% else %}
+                                <input type="checkbox" name="{{ telnyx_profile.number }}" id="{{ telnyx_profile.number }}">
+                            {% endif %}
+                            <div class="toggle">
+                                <div class="toggler"></div>
+                            </div>
+                        </div>
+        
+                    </div>
+                {% endfor %}
+                <div class="border_sec"></div>
+            </div>
+
+            <!-- ADD MESSAGE PROFILE FORM -->
+            <form action="{% url 'settings' %}" id="msg_add_form" class="add_form" method="POST">
+                {% csrf_token %}
+                <div class="field">
+                    <label for="number">Telynx number</label>
+                    <input type="text" name="number" id='number' placeholder="+...." required>
+                </div>
+                <div class="field">
+                    <label for="api_key">API key</label>
+                    <input type="password" name="api_key" id="api_key" required>
+                </div>
+                <button type="submit">Add</button>
+            </form>
+
+            <!-- RANDOMIZATION -->
+            <div class="setting">
+                <h3>Enhanced randomization</h3>
+                <div class="toggle_container">
+                    <label for="wants_random">wants_random</label>
+                    {% if user.wants_random %}
+                        <input type="checkbox" id="wants_random" checked>
+                    {% else %}
+                        <input type="checkbox" id="wants_random">
+                    {% endif %}
+                    <div class="toggle">
+                        <div class="toggler"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="border_sec"></div>
+
+            <!-- DELETE ALL CONTACTS -->
+            <div class="del_all">
+                {% if user.added_phone_numbers.all|length_is:'0' and user.added_email_addresses.all|length_is:'0' %}
+                    <a href="" style="opacity: 0.7; pointer-events: none;">Clear email and contact list</a>
+                {% else %}
+                    <a href="{% url 'delete-contacts' %}">Clear email and contact list</a>
+                {% endif %}
+            </div>
+
+        </div>
+
+        {% if messages %}
+            <!-- notifications -->
+            <div class="notification_icon">
+                <img src="{% static 'images/bell-ring.svg' %}" alt="">
+                {% if messages %}
+                    <span>{{ messages|length }}</span>
+                {% endif %}
+            </div>
+            <div class="notifications">
+                <img id="sub_icon" src="{% static 'images/bell.svg' %}" alt="" style="width: 30px; height: 30px;">
+                {% for message in messages %}
+                    {% if 'info' in message.tags %}
+                        <div class="toast info">
+                            <img src="{% static 'images/info2.svg' %}" alt="" style="width: 20px; height: 20px;">
+                            <p>{{ message }}</p>
+                        </div>
+                    {% elif  'success' in message.tags %}
+                        <div class="toast success">
+                            <img src="{% static 'images/tick.svg' %}" alt="" style="width: 20px; height: 20px;">
+                            <p>{{ message }}</p>
+                        </div>
+                    {% elif  'error' in message.tags %}
+                        <div class="toast error">
+                            <img src="{% static 'images/cancel.svg' %}" alt="" style="width: 20px; height: 20px;">
+                            <p>{{ message }}</p>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endblock content %}
+    
+{% block script %}
+<script src="{% static 'messanger/jquery-3.6.1.min.js' %}"></script>
+<script type="text/javascript">
+    window.onclick = function(event) {
+
+        // close notification shade on outside click
+        if(document.querySelector('.notifications') && !document.querySelector('.notification_icon').contains(event.target) && !document.querySelector('.notifications').contains(event.target) && document.querySelector('.notifications').classList.contains('open_shade')){
+            document.querySelector('.notifications').classList.remove('open_shade')
+        }
+
+        document.querySelectorAll('.toggle_container').forEach((toggle) => {
+            if (toggle.contains(event.target)) {
+                toggle.querySelector('input').checked = !toggle.querySelector('input').checked;
+            };
+        });
+
+        if(document.querySelector('#email_add_form').classList.contains('show2')  && !document.querySelector('#email_add_form').contains(event.target) && !document.querySelector('#email_add_btn').contains(event.target)){
+            document.querySelector('#email_add_form').classList.remove('show2');
+            document.body.classList.remove('stop_scroll');
+            document.querySelectorAll('.toggle_container').forEach((toggle) => {
+                toggle.style.pointerEvents = 'auto'
+            });
+        };
+
+        if(document.querySelector('#msg_add_form').classList.contains('show2')  && !document.querySelector('#msg_add_form').contains(event.target) && !document.querySelector('#msg_add_btn').contains(event.target)){
+            document.querySelector('#msg_add_form').classList.remove('show2');
+            document.body.classList.remove('stop_scroll');
+            document.querySelectorAll('.toggle_container').forEach((toggle) => {
+                toggle.style.pointerEvents = 'auto'
+            });
+        };
+    };
+
+
+    window.onload = () => {
+
+        // opens notifications shade
+        if (document.querySelector('.notifications')){
+            document.querySelector('.notification_icon').querySelector('img').classList.add('blink_img');
+            document.querySelector('.notification_icon').classList.add('blink_icon');
+            document.querySelector('.notification_icon').addEventListener('click', () => {
+                document.querySelector('.notification_icon').querySelector('img').classList.remove('blink_img');
+                document.querySelector('.notification_icon').classList.remove('blink_icon');
+                document.querySelector('.notifications').classList.toggle('open_shade');
+            })
+        };
+
+        document.querySelectorAll('.toggle_container').forEach((toggle) => {
+            toggle.addEventListener('click', (e) =>{
+
+                setTimeout(() => {
+                    emailing_profiles = {};
+                    messaging_profiles = {};
+                    wants_history = document.querySelector('#wants_history').checked;
+                    wants_random = document.querySelector('#wants_random').checked;
+                    if(document.querySelector('#email_profiles').querySelector('input')){
+                        document.querySelector('#email_profiles').querySelectorAll('input').forEach(profile => {
+                            emailing_profiles[profile.id] = profile.checked;
+                        })
+                    };
+                    if(document.querySelector('#msg_profiles').querySelector('input')){
+                        document.querySelector('#msg_profiles').querySelectorAll('input').forEach(profile => {
+                            messaging_profiles[profile.id] = profile.checked;
+                        })
+                    };
+                    payload = new FormData;
+                    payload.append('emailing_profiles', JSON.stringify(emailing_profiles));
+                    payload.append('messaging_profiles', JSON.stringify(messaging_profiles));
+                    payload.append('wants_random', wants_random);
+                    payload.append('wants_history', wants_history);
+
+                    $.ajax({
+                        url: '{% url "settings" %}',
+                        method: 'POST',
+                        contentType: false,
+                        dataType: 'json',
+                        cache: false,
+                        processData: false,
+                        data: payload,
+                        headers:{
+                            'X-CSRFToken': getCookie("csrftoken"),
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        success: function(data){},
+                        error: function(data){},
+                    });
+            
+                }, 200);
+                
+            });
+        });
+
+        document.querySelector('#email_add_btn').addEventListener('click', () => {
+            document.querySelector('#email_add_form').classList.add('show2');
+            document.body.classList.add('stop_scroll');
+            document.querySelectorAll('.toggle_container').forEach((toggle) => {
+                toggle.style.pointerEvents = 'none'
+            });
+        });
+
+        document.querySelector('#msg_add_btn').addEventListener('click', () => {
+            document.querySelector('#msg_add_form').classList.add('show2');
+            document.body.classList.add('stop_scroll');
+            document.querySelectorAll('.toggle_container').forEach((toggle) => {
+                toggle.style.pointerEvents = 'none'
+            });
+        });
+    };
+</script>
+{% endblock script %}

@@ -1,0 +1,469 @@
+@import url('https://fonts.googleapis.com/css?family=Manrope');
+@import url('https://fonts.googleapis.com/css?family=Raleway');
+
+:root{
+    scroll-behavior: smooth !important;
+}
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body{
+    font-family: 'Manrope';
+    background-color: #fff;
+    overflow-x: hidden !important;
+}
+
+.stop_scroll{
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+.container{
+    margin: 0 auto;
+    width: 90%;
+}
+
+a{
+    text-decoration: none;
+}
+
+h1, h2, h3, h4, h5, h6{
+    font-family: 'Manrope';
+}
+
+p, span, a{
+    font-family: 'Raleway';
+}
+
+button{
+    outline: none !important;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+}
+
+input, textarea{
+    outline: none !important;
+    color: #333;
+}
+
+input:invalid {
+    border-color: hsla(0, 61%, 70%, 0.8);
+}
+
+input,
+input:valid {
+    border-color: #ccc;
+}
+
+input[type=checkbox]{
+    cursor: pointer !important;
+}
+
+::placeholder{
+    color: #ccc;
+    font-family: 'Manrope';
+}
+
+
+.be_container{
+    margin-top: 80px;
+    margin-bottom: 42px;
+    min-height: 100vh;
+}
+
+
+.settings_head{
+    padding: 20px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #f2f2f2;
+    box-shadow: 0 0 0 100vmax #f2f2f2;
+    clip-path: inset(0 -100vmax);
+}
+
+.settings_head h1{
+    font-size: clamp(20px, 5vw, 30px);
+    font-weight: 700;
+    color: #333;
+}
+
+.settings_head img{
+    width: clamp(20px, 5vw, 30px);
+    height: clamp(20px, 5vw, 30px);
+    filter: contrast(0.7);
+}
+
+.border_btm{
+    width: 100%;
+    height: 3px;
+    background-color: hsla(120, 61%, 60%, 0.8);
+    box-shadow: 0 0 0 100vmax hsla(120, 61%, 60%, 0.8);
+    clip-path: inset(0 -100vmax);
+}
+
+.border_sec{
+    width: 100%;
+    height: 3px !important;
+    background-color: #ccc;
+    margin-bottom: 10px;
+    border-radius: 50%;
+    gap: 0 !important;
+    padding: 0;
+}
+
+.setting{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+    padding: clamp(10px, 2vw, 20px) 10px;
+    margin-bottom: 10px;
+}
+
+.setting h3{
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: 700;
+    color: #555;
+}
+
+.user_details{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+    padding: 20px 0;
+}
+
+.user_details h2{
+    font-size: clamp(18px, 5vw, 24px);
+    font-weight: 700;
+    color: #333;
+}
+
+.user_details div{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: clamp(5px, 2vw, 10px);
+}
+
+.user_details p{
+    font-size: clamp(14px, 2vw, 18px);
+    font-weight: 600;
+    color: #888;
+}
+
+.user_details small{
+    font-size: clamp(10px, 2vw, 16px);
+    font-weight: 600;
+    color: #aaa;
+}
+
+.user_details .active{
+    color: hsla(120, 71%, 60%, 1);
+}
+
+.user_details .inactive{
+    color: hsla(0, 71%, 60%, 1);
+}
+
+.profiles{
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 10px;
+}
+
+.profiles .profile_head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+    padding: clamp(10px, 2vw, 20px) 0px;
+}
+
+.profile_head h3{
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: 700;
+    color: #555;
+}
+
+.profile_head img{
+    width: clamp(20px, 5vw, 30px);
+    height: clamp(20px, 5vw, 30px);
+    filter: saturate(120%) brightness(1.2);
+    transition: 0.1s ease-in-out;
+}
+
+.profile_head img:hover{
+    filter: saturate(120%) brightness(1.2) contrast(1.2);
+    transform: scale(1.05);
+    cursor: pointer;
+}
+
+.profiles .profile{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: clamp(5px, 2vw, 10px) 10px;
+}
+
+.profile:nth-child(even){
+    background-color: #f2f2f2;
+}
+
+.profile div{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 10px;
+}
+
+.profile div .profile_name{
+    font-size: clamp(14px, 2vw, 16px);
+    font-weight: 600;
+    color: #555;
+    font-family: 'Manrope';
+    line-break: anywhere;
+    hyphens: auto;
+}
+
+.profile div .profile_pass{
+    font-size: clamp(12px, 2vw, 14px);
+    font-weight: 600;
+    color: #888;
+    line-break: anywhere;
+    hyphens: auto;
+}
+
+.profile div a{
+    font-size: clamp(10px, 2vw, 14px);
+    font-weight: 600;
+    color: hsla(0, 71%, 60%, 1);
+}
+
+.toggle_container{
+    width: clamp(50px, 5vw, 60px);
+    height: clamp(20px, 5vw, 30px);
+    background-color: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100vmax;
+    position: relative;
+}
+
+.profile .toggle_container{
+    transform: scale(0.8);
+}
+
+.toggle_container label{
+    display: none;
+}
+
+.toggle_container input{
+    appearance: none;
+}
+
+.toggle_container .toggle{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #fff;
+    border-radius: inherit;
+    cursor: pointer;
+    transition: 0.1s ease-in-out;
+    border: 2px solid #ccc;
+}
+
+.toggle .toggler{
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    width: 50%;
+    height: 90%;
+    background-color: hsla(120, 61%, 80%, 1);
+    border-radius: 50px;
+    border: #eee 2px solid;
+    transition: 0.1s ease-in-out;
+}
+
+.toggle_container input:checked + .toggle .toggler{
+    left: 45%;
+    background-color: hsla(120, 61%, 60%, 0.8);
+    border-color: #eee;
+}
+
+.toggle_container input:checked + .toggle {
+    border-color: hsla(120, 61%, 60%, 0.8) ;
+}
+
+
+.add_form{
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    box-shadow:  0px 0px 20px 100vmax rgba(31, 31, 31, 0.35), 0px 0px 20px rgba(31, 31, 31, 0.35);
+    isolation: isolate;
+    z-index: 100;
+    border-radius: 4px;
+    border: #ccc 2px solid;
+    padding: 20px;
+    max-width: 500px;
+    min-width: 300px;
+    min-height: 300px;
+    display: none;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    animation: show_form 0.1s ease-out ;
+    animation-fill-mode: forwards;
+}
+
+@keyframes show_form {
+    from{
+        opacity: 0.2;
+        transform: translate(-50%, -50%) scale(300%) ;
+    }
+
+    to{
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(100%) ;
+    }
+}
+
+.show2{
+    display: flex !important;
+}
+
+
+
+.add_form .field{
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px 0;
+    margin-bottom: 20px;
+}
+
+.field label{
+    font-size: clamp(16px, 2vw, 20px);
+    font-weight: clamp(600, 5, 700);
+    color: #333;
+}
+
+.field input{
+    flex: auto;
+    width: 100%;
+    outline: none;
+    border-radius: 4px;
+    border: none;
+    background-color: #eee;
+    padding: 10px 10px;
+    font-size: clamp(14px, 2vw, 16px);
+    font-family: 'Manrope';
+    font-weight: 500;
+    color: #333;
+}
+
+.field input:focus-within{
+    border: 1px hsla(120, 61%, 70%, 0.8) solid;
+    background-color: #fff;
+    margin: -1px !important;
+}
+
+.add_form button{
+    width: 100%;
+    padding: 10px;
+    font-size: clamp(16px, 2vw, 18px);
+    font-family: 'Raleway';
+    font-weight: clamp(600, 5, 700);
+    color: #555;
+    background-color: hsla(120, 61%, 70%, 0.8);
+    margin-top: 10px;
+    transition: 0.1s ease-out;
+}
+
+.del_all{
+    padding: clamp(10px, 2vw, 20px) 10px;
+}
+
+.del_all a{
+    font-weight: clamp(600, 5, 700);
+    font-size: clamp(14px, 2vw, 16px);
+    color: hsla(0, 71%, 60%, 1);
+}
+
+@media (hover: none){
+    .add_form button{
+        background-color: hsla(120, 60%, 61%, 0.8);
+        color: #fff;
+    }
+}
+@media (hover: hover){
+    .settings_head img:hover{
+        filter: contrast(0.7) brightness(1.2);
+        transform: scale(1.05) rotate(0deg);
+        cursor: pointer;
+        animation: rotate 0.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes rotate{
+        from{
+            transform: scale(1.05) rotate(0deg);
+        }
+        to{
+            transform: scale(1.05) rotate(360deg);
+        }
+    }
+        
+    .profile div a:hover{
+        color: hsla(0, 71%, 60%, 1);
+        text-decoration: underline;
+    }
+
+    .toggler:hover{
+        cursor: pointer;
+        filter: contrast(0.7) brightness(1.2);
+    }
+
+    .add_form button:hover{
+        background-color: hsla(120, 60%, 61%, 0.8);
+        color: #fff;
+        transform: scale(1.01);
+    }
+
+    .del_all a:hover{
+        color: hsla(0, 60%, 60%, 1);
+        text-decoration: underline;
+    }
+}
+
+@media screen and (max-width: 480px){
+    .toggle_container{
+        width: 30px;
+        height: 20px;
+    }
+}
+    

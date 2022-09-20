@@ -1,19 +1,18 @@
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 from django.utils import timezone
-from django.contrib.auth.models import User
-import telnyx, time, math
+from users.models import CustomUser
+import telnyx, time, math, random
 import numpy
-from django.core.mail import EmailMessage, send_mail
+from django.core.mail import EmailMessage
 from django.core import mail
-from .send import set_account
-
+from django.core.mail.backends.smtp import EmailBackend
 
 
 class PhoneNumber(models.Model):
     '''This class is used to store phone numbers'''
     number = PhoneNumberField(max_length=16)
-    added_by = models.ForeignKey(User, related_name='added_phone_numbers', null=True, verbose_name="added by", on_delete=models.CASCADE)
+    added_by = models.ForeignKey(CustomUser, related_name='added_phone_numbers', null=True, verbose_name="added by", on_delete=models.CASCADE)
     date_added = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
@@ -26,7 +25,7 @@ class PhoneNumber(models.Model):
 class EmailAddress(models.Model):
     '''Email address model'''
     address = models.EmailField(max_length=200)
-    added_by = models.ForeignKey(User, related_name='added_email_addresses', null=True, verbose_name="added by", on_delete=models.CASCADE)
+    added_by = models.ForeignKey(CustomUser, related_name='added_email_addresses', null=True, verbose_name="added by", on_delete=models.CASCADE)
     date_added = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
@@ -34,12 +33,13 @@ class EmailAddress(models.Model):
 
     class Meta:
         ordering = ['address']
+        verbose_name_plural = "Email addresses"
 
 
 class TextMessage(models.Model):
     '''The message to be sent'''
     message = models.TextField(max_length=500)
-    sent_by = models.ForeignKey(User, related_name='text_messages', verbose_name="sender", null=True, on_delete=models.CASCADE)
+    sent_by = models.ForeignKey(CustomUser, related_name='text_messages', verbose_name="sender", null=True, on_delete=models.CASCADE)
     sent_to = models.ManyToManyField(PhoneNumber, max_length=16, default=None, blank=True, related_name="sms_received", verbose_name="receivers")
     date_created = models.DateTimeField(default=timezone.now)
     date_sent = models.DateTimeField(default=timezone.now) 
@@ -50,87 +50,90 @@ class TextMessage(models.Model):
 
     class Meta:
         ordering = ['-date_created']
+        verbose_name_plural = "Text Messages"
+
 
     def send(self, receivers=None):
         '''Handles the sending of sms objects'''
-        count = 0
-        if receivers and receivers != []:
-            for receiver in receivers:
-                self.sent_to.add(receiver)
+        if self.sent_by.can_send:
+            if receivers and receivers != []:
+                for receiver in receivers:
+                    self.sent_to.add(receiver)
+                self.save()
+                return self.finish_sending(receivers) 
+
+            elif not receivers and self.sent_to.all() != []:
+                return self.finish_sending(self.sent_to.all())
+
+            else:
+                return False, 'No receivers specified.'
+        else:
+            return False, 'You are not permitted to send messages. Please reactivate your account.'
+
+
+    def delete(self, *args, **kwargs):
+        '''Deletes the message object'''
+        self.sent_to.clear()
+        super().delete(*args, **kwargs)
+    
+
+    def finish_sending(self, receivers):
+        '''Finishes sending the message to all the receivers'''
+        active_senders = self.sent_by.telnyx_profiles.filter(is_active=True)
+        if active_senders and active_senders != []:
+            count = 0
+            # randomize the order of the active senders
+            if self.sent_by.wants_random:
+                random.shuffle(active_senders)
             for receiver in receivers:
                 # allows only five messages to be sent per second
                 if count < 5:
                     try:
-                        telnyx.api_key = "KEY018329C263D7B16A58CACEF6308876B9_wIlFXA6tn4GxeaVHvCsaIT"
+                        if self.sent_by.wants_random:
+                            # further randomize the order of the active senders
+                            senders = random.choices(random.choices(active_senders, k=len(active_senders)), k=(len(self.sent_to.all())*len(active_senders)))
+                            random.shuffle(senders)
+                            sender = random.choice(senders)
+                        else:
+                            sender = random.choice(active_senders)
+                        telnyx.api_key = sender.get_api_key()
                         telnyx.Message.create(
-                            from_="+14093595198",
+                            from_= sender.number.as_e164,
                             to=receiver.number.as_e164,
                             text=self.message,
                         )
                         count += 1
                     except telnyx.error.APIConnectionError as e:
-                        print(e)
+                        (e)
                         return False, 'Connection error! Please Check your internet connectivity.'
                     except telnyx.error.APIError as e:
-                        print(e)
+                        (e)
                         return False, e.__dict__['errors'][0]['detail']
                     except telnyx.error.AuthenticationError as e:
-                        print(e)
+                        (e)
                         return False, e.__dict__['errors'][0]['detail']
                     except telnyx.error.InvalidRequestError as e:
-                        print(e)
+                        (e)
                         return False, e.__dict__['errors'][0]['detail']
                     except telnyx.error.RateLimitError as e:
-                        print(e)
+                        (e)
                         return False, e.__dict__['errors'][0]['detail']
                     except Exception as e:
-                        print(e)
-                        return False, e.__dict__['errors'][0]['detail']
-                else:
-                    time.sleep(1)
-                    count = 0    
-            self.is_sent = True
-            self.save()
-            return True, 'Message sent successfully.'
-
-        elif not receivers and self.sent_to.all() != []:
-            for receiver in self.sent_to.all():
-                if count < 5:
-                    try:
-                        telnyx.api_key = "KEY018329C263D7B16A58CACEF6308876B9_wIlFXA6tn4GxeaVHvCsaIT"
-                        telnyx.Message.create(
-                            from_="+14093595198",
-                            to=receiver.number.as_e164,
-                            text=self.message,
-                        )
-                        count += 1
-                    except telnyx.error.APIConnectionError as e:
-                        print(e)
-                        return False, 'Connection error! Please Check your internet connectivity.'
-                    except telnyx.error.APIError as e:
-                        print(e)
-                        return False, e.__dict__['errors'][0]['detail']
-                    except telnyx.error.AuthenticationError as e:
-                        print(e)
-                        return False, e.__dict__['errors'][0]['detail']
-                    except telnyx.error.InvalidRequestError as e:
-                        print(e)
-                        return False, e.__dict__['errors'][0]['detail']
-                    except telnyx.error.RateLimitError as e:
-                        print(e)
-                        return False, e.__dict__['errors'][0]['detail']
-                    except Exception as e:
-                        print(e)
-                        return False, e.__dict__['errors'][0]['detail']
+                        (e)
+                        return False, e
                 else:
                     time.sleep(1)
                     count = 0
-            self.is_sent = True
-            self.save()
+            if self.sent_by.wants_history:    
+                self.is_sent = True
+                self.save()
+            else:
+                self.delete()
             return True, 'Message sent successfully.'
         else:
-            return False, "Error! Message needs receivers to be sent."
+            return False, 'You have no active messaging profiles. Please create or enable one.'
 
+        
 
 
 
@@ -141,7 +144,7 @@ class Email(models.Model):
     bcc = models.TextField(max_length=500, default=None, blank=True, null=True)
     cc = models.TextField(max_length=500, default=None, blank=True, null=True)
     body = models.TextField(max_length=5000, default=None)
-    sent_by = models.ForeignKey(User, related_name='mails', null=True, verbose_name="sender", on_delete=models.CASCADE)
+    sent_by = models.ForeignKey(CustomUser, related_name='mails', null=True, verbose_name="sender", on_delete=models.CASCADE)
     sent_to = models.ManyToManyField(EmailAddress, related_name="mails_received", verbose_name="receivers")
     date_created = models.DateTimeField(default=timezone.now)
     date_sent = models.DateTimeField(default=timezone.now)
@@ -157,12 +160,36 @@ class Email(models.Model):
 
 
     def send(self, receivers=None):
-        connection = mail.get_connection()
-        if receivers and receivers != []:
-            for receiver in receivers:
-                self.sent_to.add(receiver)
-            if len(self.sent_to.all()) <= 500:
-                # send_mail('','This is test sms with smtp', 'tholuwarlarshe2003@gmail.com', ['+2349013329333',], auth_user="samasenpai07@gmail.com", auth_password='mxqwczfcansizklo', connection=connection)
+        if self.sent_by.can_send:
+            if receivers and receivers != []:
+                for receiver in receivers:
+                    self.sent_to.add(receiver)
+                self.save()
+                return self.finish_sending()
+                
+            elif not receivers and self.sent_to.all() != []:
+                return self.finish_sending()
+
+            else:
+                return False, 'No receivers specified.'
+        else:
+            return False, 'You are not permitted to send emails. Please reactivate your account.'
+    
+    
+    def finish_sending(self):
+            active_senders = list(self.sent_by.email_profiles.filter(is_active=True))
+            if active_senders and active_senders != []:
+                if self.sent_by.wants_random:
+                    random.shuffle(active_senders)
+
+                if self.sent_by.wants_random:
+                    #further randomize the order of the active senders
+                    senders = random.choices(random.choices(active_senders, k=len(active_senders)), k=(len(self.sent_to.all())*len(active_senders)))
+                    random.shuffle(senders)
+                else:
+                    senders = random.choices(active_senders, k=(len(active_senders)))
+
+                # prepare the emails to be sent
                 #get attachments
                 if self.attachments.all() and len(self.attachments.all()) > 0:
                     attachments = [(attachment.file.name, attachment.file.read()) for attachment in self.attachments.all()]
@@ -172,147 +199,55 @@ class Email(models.Model):
                 if self.bcc and self.bcc != '':
                     bcc = self.bcc.split(',')
                 else:
-                    bcc = None
+                    bcc = []
                 #get cc
                 if self.cc and self.cc != '':
                     cc = self.cc.split(',')
                 else:
-                    cc = None
+                    cc = []
 
-                email = EmailMessage(
-                            subject=self.subject,
-                            body=self.body,
-                            to=self.sent_to.values_list('address', flat=True),
-                            bcc=bcc,
-                            cc=cc,
-                            attachments=attachments,
-                            connection=connection,
-                        )
-                try:
-                    email.send()
-                    self.is_sent = True
-                    self.save()
-                    return True, 'Email sent successfully'
-                except Exception as e:
-                    print(e)
-                    return False, f'Failed to send email: {e}'
-
-            else:
-                no_of_splits = math.ceil(len(self.sent_to.all())/500)
+                #split the receivers into chunks to be sent with different senders and connections
+                no_of_splits = math.ceil(len(self.sent_to.all())/100)
                 list_of_receivers = numpy.array_split(self.sent_to.all(), no_of_splits)
                 email_msgs = []
-                for receiver_list in list_of_receivers:
-                    #get attachments
-                    if self.attachments.all() and len(self.attachments.all()) > 0:
-                        attachments = [(attachment.file.name, attachment.file.read()) for attachment in self.attachments.all()]
-                    else:
-                        attachments = None
-                    #get bcc
-                    if self.bcc and self.bcc != '':
-                        bcc = self.bcc.split(',')
-                    else:
-                        bcc = None
-                    #get cc
-                    if self.cc and self.cc != '':
-                        cc = self.cc.split(',')
-                    else:
-                        cc = None
+                    
+                for receivers in list_of_receivers:
+                    for receiver in receivers:
+                        sender = random.choice(senders)
+                        connection = EmailBackend(host=sender.host, port=sender.port, username=sender.email, password=sender.get_app_pass(), use_tls=True, use_ssl=False)
+                        email = EmailMessage(
+                                    subject=self.subject,
+                                    body=self.body,
+                                    to=[sender.email,],
+                                    bcc=bcc + [receiver.address,],
+                                    cc=cc,
+                                    attachments=attachments,
+                                    connection=connection,
+                                )
+                        email_msgs.append(email)
+                #send the emails
+                    try:
+                        for email in email_msgs:
+                            email.send()
+                        if self.sent_by.wants_history:    
+                            self.is_sent = True
+                            self.save()
+                        else:
+                            self.delete()
+                        return True, 'Email sent successfully'
+                    except Exception as e:
+                        (e)
+                        return False, f'Failed to send email: {e}'
+            else:
+                return False, 'You have no active emailing profiles. Please create or enable one.'
 
-                    email = EmailMessage(
-                                subject=self.subject,
-                                body=self.body,
-                                to=[receiver.address for receiver in receiver_list],
-                                bcc=bcc,
-                                cc=cc,
-                                attachments=attachments,
-                                connection=connection,
-                            )
-                    email_msgs.append(email)
-                try:
-                    connection.send_messages(email_msgs)
-                    self.is_sent = True
-                    self.save()
-                    return True, 'Email sent successfully'
-                except Exception as e:
-                    print(e)
-                    return False, f'Failed to send email: {e}'
+    def delete(self, *args, **kwargs):
+        for attachment in self.attachments.all():
+            attachment.delete()
+        self.sent_to.clear()
+        super().delete(*args, **kwargs)
         
-        elif not receivers and self.sent_to.all() != []:
-            if len(self.sent_to.all()) <= 500:
-                #get attachments
-                if self.attachments.all() and len(self.attachments.all()) > 0:
-                    attachments = [(attachment.file.name, attachment.file.read()) for attachment in self.attachments.all()]
-                else:
-                    attachments = None
-                #get bcc
-                if self.bcc and self.bcc != '':
-                    bcc = self.bcc.split(',')
-                else:
-                    bcc = None
-                #get cc
-                if self.cc and self.cc != '':
-                    cc = self.cc.split(',')
-                else:
-                    cc = None
 
-                email = EmailMessage(
-                            subject=self.subject,
-                            body=self.body,
-                            to=self.sent_to.values_list('address', flat=True),
-                            bcc=bcc,
-                            cc=cc,
-                            attachments=attachments,
-                            connection=connection,
-                        )
-                try:
-                    email.send()
-                    self.is_sent = True
-                    self.save()
-                    return True, 'Email sent successfully'
-                except Exception as e:
-                    print(e)
-                    return False, f'Failed to send email: {e}'
-
-            else:
-                no_of_splits = math.ceil(len(self.sent_to.all())/500)
-                list_of_receivers = numpy.array_split(self.sent_to.all(), no_of_splits)
-                email_msgs = []
-                for receiver_list in list_of_receivers:
-                    #get attachments
-                    if self.attachments.all() and len(self.attachments.all()) > 0:
-                        attachments = [(attachment.file.name, attachment.file.read()) for attachment in self.attachments.all()]
-                    else:
-                        attachments = None
-                    #get bcc
-                    if self.bcc and self.bcc != '':
-                        bcc = self.bcc.split(',')
-                    else:
-                        bcc = None
-                    #get cc
-                    if self.cc and self.cc != '':
-                        cc = self.cc.split(',')
-                    else:
-                        cc = None
-
-                    email = EmailMessage(
-                                subject=self.subject,
-                                body=self.body,
-                                to=[receiver.address for receiver in receiver_list],
-                                bcc=bcc,
-                                cc=cc,
-                                attachments=attachments,
-                                connection=connection,
-                            )
-                    email_msgs.append(email)
-                try:
-                    connection.send_messages(email_msgs)
-                    self.is_sent = True
-                    self.save()
-                    return True, 'Email sent successfully'
-                except Exception as e:
-                    print(e)
-                    return False, f'Failed to send email: {e}'
-            
 
 
 def get_attachment_path(instance, filename):
@@ -323,7 +258,7 @@ class Attachment(models.Model):
     '''Handles the creation of attachments'''
     file = models.FileField(upload_to=get_attachment_path, null=True, blank=True, default=None)
     email = models.ForeignKey(Email, related_name='attachments', null=True, blank=True, default=None, on_delete=models.CASCADE)
-    added_by = models.ForeignKey(User, related_name='attachments', null=True, default='none', verbose_name="added by", on_delete=models.CASCADE)
+    added_by = models.ForeignKey(CustomUser, related_name='attachments', null=True, default=None, verbose_name="added by", on_delete=models.CASCADE)
     date_added = models.DateTimeField(default=timezone.now)
 
     def __str__(self):

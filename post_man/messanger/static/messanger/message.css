@@ -178,10 +178,16 @@ p, span, a{
 
 .select_all{
     display: none;
-    gap: 10px;
     align-items: center;
+    justify-content: space-between;
     width: 100%;
     padding:0 10px;
+}
+
+.select_all div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .select_all :is(label, p){
@@ -192,7 +198,6 @@ p, span, a{
 .select_all p{
     color: rgb(192, 51, 51);
     justify-self: flex-end !important;
-    flex: auto;
     display: flex;
     align-items: center;
     justify-content: flex-end;

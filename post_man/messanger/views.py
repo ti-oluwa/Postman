@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views.generic import ListView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.utils import IntegrityError
+from users.models import EmailProfile, TelnyxProfile
 from .models import EmailAddress, PhoneNumber, TextMessage, Email, Attachment
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth import authenticate, login, logout
@@ -9,6 +11,9 @@ import json, mimetypes, os, re, time
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.utils.encoding import smart_str
+from django.contrib.auth import get_user_model
+
+CustomUser = get_user_model()
 
 
 
@@ -91,8 +96,147 @@ class EmailView(LoginRequiredMixin, ListView):
         return self.model1.objects.filter(sent_by_id=self.request.user.id), self.model2.objects.filter(added_by_id=self.request.user.id)
 
 
+class SettingsView(LoginRequiredMixin, UserPassesTestMixin, View):
+    '''Handles the modification of user settings'''
+    model1 = EmailProfile
+    model2 = TelnyxProfile
 
-class RetryView(LoginRequiredMixin, View):
+    def test_func(self):
+        if self.request.user.is_active:
+            return True
+        return False
+
+    def get(self, request, *args, **kwargs):
+        user = CustomUser.objects.get(id=request.user.id)
+        return render(request, 'messanger/settings.html', {'user': user})
+ 
+    def post(self, request, *args, **kwargs):
+        user = CustomUser.objects.get(id= request.user.id)
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+        if is_ajax:
+            payload = request.POST
+            emailing_profiles = json.loads(payload['emailing_profiles'])
+            messaging_profiles = json.loads(payload['messaging_profiles'])
+            wants_random = json.loads(payload['wants_random'])
+            wants_history = json.loads(payload['wants_history'])
+
+            #apply settings
+            user.wants_random = wants_random
+            user.wants_history = wants_history
+            user.save()
+
+            for profile_name, is_active in emailing_profiles.items():
+                try:
+                    email_profile = self.model1.objects.filter(owned_by=user, email=profile_name)[0]
+                    email_profile.is_active = bool(is_active)
+                    email_profile.save()
+                except self.model1.DoesNotExist:
+                    pass
+
+            for profile_name, is_active in messaging_profiles.items():
+                try:
+                    message_profile = self.model2.objects.filter(owned_by=user, number=profile_name)[0]
+                    message_profile.is_active = bool(is_active)
+                    message_profile.save()
+                except self.model2.DoesNotExist:
+                    pass
+            return JsonResponse(data={"success":'true'}, status=200)
+
+        else:
+            form_data = request.POST
+            if 'number' and 'api_key' in form_data.keys():
+                number = form_data['number']
+                api_key = form_data['api_key']
+                try:
+                    telnyx_profile = self.model2.objects.create(owned_by=user, number=number, api_key=api_key)
+                    telnyx_profile.save()
+                    messages.success(request, 'Profile added successfully')
+
+                except IntegrityError:
+                    messages.error(request, 'A profile with this number already exists')
+
+                except Exception as e:
+                    print(e)
+                    pass
+            elif 'email' and 'app_pass' in form_data.keys():
+                email = form_data['email']
+                app_pass = form_data['app_pass']
+                try:
+                    email_profile = self.model1.objects.create(owned_by=user, email=email, app_pass=app_pass)
+                    email_profile.save()
+                    messages.success(request, 'Profile added successfully')
+
+                except IntegrityError:
+                    messages.error(request, 'A profile with this email already exists')
+
+                except Exception as e:
+                    print(e)
+                    pass
+            return redirect('settings')
+
+
+class ProfileDeleteView(LoginRequiredMixin, UserPassesTestMixin, View):
+    '''View for deleting messaging and email profiles'''
+    model1 = EmailProfile
+    model2= TelnyxProfile
+
+    def test_func(self):
+        if self.kwargs['object_type'] == 'ep':
+            if self.model1.objects.filter(id=self.kwargs['pk']).exists() and  self.request.user == self.model1.objects.get(id=self.kwargs['pk']).owned_by:
+                return True
+            return False
+        elif self.kwargs['object_type'] == 'mp':
+            if self.model2.objects.filter(id=self.kwargs['pk']).exists() and self.request.user == self.model2.objects.get(id=self.kwargs['pk']).owned_by:
+                return True
+            return False
+        return False
+
+    def get(self, request, *args, **kwargs):
+        object_type = kwargs['object_type']
+        object_id = kwargs['pk']
+
+        if object_type == 'ep':
+            try:
+                obj = self.model1.objects.get(id=object_id)
+                obj.delete()
+                messages.success(request, "Profile deleted successfully")
+            except Exception as e:
+                messages.error(request, 'Error: {}'.format(e))
+        elif object_type == 'mp':
+            try:
+                obj = self.model2.objects.get(id=object_id)
+                obj.delete()
+                messages.success(request, "Profile deleted successfully")
+            except Exception as e:
+                messages.error(request, 'Error: {}'.format(e))
+        return redirect('settings')
+            
+
+class DeleteAllContactsView(LoginRequiredMixin, UserPassesTestMixin, View):
+    '''View for deleting all contacts'''
+    model1 = EmailAddress
+    model2 = PhoneNumber
+
+    def test_func(self):
+        if self.request.user.is_active:
+            return True
+        return False
+
+    def get(self, request, *args, **kwargs):
+        try:
+            self.model1.objects.filter(added_by_id=request.user.id).delete()
+            self.model2.objects.filter(added_by_id=request.user.id).delete()
+            messages.success(request, 'All contacts deleted successfully')
+        except Exception as e:
+            messages.error(request, 'Error: {}'.format(e))
+        return redirect('settings')
+
+
+
+
+
+class RetryView(LoginRequiredMixin, UserPassesTestMixin, View):
     '''Handles requests related to the retrying mails or sms'''
     model1 = TextMessage
     model2 = Email
@@ -116,6 +260,18 @@ class RetryView(LoginRequiredMixin, View):
             else:
                 messages.error(request, response)
             return redirect('emails')
+
+    def test_func(self):
+        object_id = self.request.GET.get('pk')
+        object_type = self.request.GET.get('type')
+        if object_type == 'sms':
+            if self.request.user == self.model1.objects.get(id=object_id).sent_by and self.request.user.can_send:
+                return True
+            return False
+        elif object_type == 'email':
+            if self.request.user == self.model2.objects.get(id=object_id).sent_by and self.request.user.can_send:
+                return True
+            return False
 
 
 class DownloadView(LoginRequiredMixin, UserPassesTestMixin,View):
@@ -159,7 +315,7 @@ class AjaxView(LoginRequiredMixin, View):
     '''Handles ajax requests for sending emails and sms'''
     feedback = {'messages': []}
     feedback_ready = False
-    
+
     def post(self, request, *args, **kwargs):
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         
@@ -180,10 +336,25 @@ class AjaxView(LoginRequiredMixin, View):
             for key in files.keys():
                 if key == 'file':
                     file = files['file']
-                    if action == 'send_message':
-                        lines = re.split(r"[\s,.;\-']", file.read().decode('utf-8'))
-                    else: 
-                        lines = re.split(r"[\s,;']", file.read().decode('utf-8'))
+                    if file.name.endswith('.txt')==False or file.name.endswith('.csv')==False:
+                        messages.error(request, 'Invalid file format')
+                        if action == 'send_message':
+                            return redirect('messages')
+                        elif action == 'send_email':
+                            return redirect('emails')
+
+                    elif file.size > 1048576:
+                        messages.error(request, 'File size too large')
+                        if action == 'send_message':
+                            return redirect('messages')
+                        elif action == 'send_email':
+                            return redirect('emails')
+
+                    else:
+                        if action == 'send_message':
+                            lines = re.split(r"[\s,.;\-']", file.read().decode('utf-8'))
+                        else: 
+                            lines = re.split(r"[\s,;']", file.read().decode('utf-8'))
 
             for key in files.keys():
                 if key.startswith('attached_file'):
@@ -348,10 +519,11 @@ class AjaxView(LoginRequiredMixin, View):
                     is_sent, response= new_email.send(receivers)
                     if is_sent:
                         messages.success(request, response)
-                        if len(new_email.sent_to.all()) > 1:
-                            messages.success(request, f'{len(new_email.sent_to.all())} emails sent')
-                        else:
-                            messages.success(request, f'{len(new_email.sent_to.all())} email sent')
+                        if new_email.sent_by.wants_history:
+                            if len(new_email.sent_to.all()) > 1:
+                                messages.success(request, f'{len(new_email.sent_to.all())} emails sent')
+                            else:
+                                messages.success(request, f'{len(new_email.sent_to.all())} email sent')
                         
                     else:
                         messages.error(request, response)
@@ -386,11 +558,14 @@ class AjaxDeleteView(View):
                 count = 0
                 for object_id in object_list:
                     object = get_object_or_404(self.model, id=int(object_id))
-                    if isinstance(object, Email) and object.attachments:
-                        for attachment in object.attachments.all():
-                            attachment.delete()
-                    object.delete()
-                    count += 1
+                    if object.sent_by == request.user:
+                        object.delete()
+                        count += 1
+                    else:
+                        response['message'] = "error"
+                        messages.info(request, "Forbidden request! you cannot delete messages sent by other users")
+                        return JsonResponse(data=response)
+
                 response['message'] = "success"
                 if count > 1 and object_type == "sms":
                     messages.success(request, '{} messages deleted'.format(count))

@@ -43,8 +43,10 @@
             <div class="messages">
                 {% if text_messages %} 
                     <div class="select_all">
-                        <input id="select_all" type="checkbox" value="all">
-                        <label for="select_all">Select all</label>
+                        <div>
+                            <input id="select_all" type="checkbox" value="all">
+                            <label for="select_all">Select all</label>
+                        </div>
                         <p>Delete</p>
                     </div>
                     {% for message in text_messages %}
@@ -70,7 +72,7 @@
                                 <p class="succinct">{{ message.message | truncatewords:10 }}.</p>
                             </div>
                             <div class="message_content">
-                                <p>{{ message.message | urlize | telify | linebreaks }}</p>
+                                <p>{{ message.message | linebreaks | urlize | telify }}</p>
                                 <p id="minor">
                                 {% if message.sent_to.all|length  > 1%}
                                     <a>See recipients</a> - 
