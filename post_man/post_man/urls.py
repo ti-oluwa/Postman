@@ -15,11 +15,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from messanger.views import LogoutView, LoginView
+from users.views import LogoutView, LoginView
+from users.views import UserRegisterView, TOSView, ForgotPasswordView, AddDefaultItemsView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('messanger.urls')),
     path('login/', LoginView.as_view(), name="login"),
     path('logout/', LogoutView.as_view(), name="logout"),
+    path('register/', UserRegisterView.as_view(), name="register"),
+    path('forgot-password/', ForgotPasswordView.as_view(), name="forgot-password"),
+    path('user/', include('users.urls')),
+    path('privacy/', TOSView, name='privacy'),
+    path('add-default-items/', AddDefaultItemsView.as_view(), name='add-default-items'),
 ]

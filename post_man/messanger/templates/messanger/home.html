@@ -32,5 +32,51 @@
     </div>
 {% endblock %}
 
+{% block script %}
+<script type="text/javascript">
+    window.onclick = (event) => {
+        const accept_btn = document.getElementById('accept');
+        const decline_btn = document.getElementById('decline');
+        if(document.querySelector('.cookie_msg') && !document.querySelector('.cookie_msg').contains(event.target) && !document.querySelector('.cookie_msg').classList.contains('close_cookie')){
+            document.querySelector('.cookie_msg').classList.add('close_cookie');
+        }
+        if (accept_btn && accept_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'accept',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        }
+        else if (decline_btn && decline_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'decline',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        };
+    };
+</script>
+{% endblock script %}
+
         
  

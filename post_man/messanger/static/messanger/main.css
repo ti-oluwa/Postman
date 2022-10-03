@@ -53,6 +53,23 @@ input, textarea{
 
 input:invalid {
     border-color: hsla(0, 61%, 70%, 0.8);
+    animation: shake 2s ease-in-out;
+    animation-fill-mode: forwards;
+}
+
+@keyframes identifier {
+    25%{
+        transform: translateY(-4px);
+    }
+    50%{
+        transform: translateY(4px);
+    }
+    75%{
+        transform: translateY(-4px);
+    }
+    100%{
+        transform: translateY(0px);
+    }
 }
 
 input,
@@ -207,6 +224,7 @@ header .container .nav ul{
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
+    isolation: isolate;
     gap: 20px;
     max-height: 220px;
     overflow-y: auto;
@@ -245,6 +263,7 @@ header .container .nav ul{
     top: 0px;
     border-radius: 50%;
     box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    z-index: 1;
 }
 
 .toast{
@@ -254,12 +273,15 @@ header .container .nav ul{
     align-items: center;
     width: 300px;
     min-height: 50px;
+    max-height: 80px;
     padding: 10px;
+    padding-right: 5px;
     background-color: #fff;
     border-radius: 4px;
     box-shadow: 0 3px 10px rgba(0,0,0,0.2);
     transition: 0.2s ease-out;
     overflow: hidden;
+    position: relative;
 }
 
 .toast img{
@@ -272,9 +294,19 @@ header .container .nav ul{
     font-size: 14px;
     font-weight: 600;
     color: #333;
-    line-break: anywhere;
+    line-break: auto;
     hyphens: auto;
     flex: auto;
+    max-height: 80px;
+    padding: 10px 0;
+    padding-right: 5px;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+.toast.toast::-webkit-scrollbar{
+    width: 2px;
+    /* margin-left: 5px; */
 }
 
 .info{
@@ -288,8 +320,102 @@ header .container .nav ul{
 .success{
     border-left: 5px solid #4caf50;
 }
-/*footer*/
 
+.cookie_msg{
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform:  translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: clamp(20px, 2vw, 40px) 20px;
+    gap: 10px;
+    width: min(500px, 90%);
+    background-color: hsla(210, 15%, 95%, 0.9);
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transform: translate(-50%, 100%);
+    opacity: 0;
+    animation: open_cookie 0.5s ease-in;
+    animation-delay: 0.5s;
+    animation-fill-mode: forwards;
+}
+
+.cookie_msg p{
+    font-family: "Manrope";
+    font-weight: 600;
+    color: #333;
+    font-size: clamp(14px, 1.5vw, 16px);
+}
+
+.cookie_msg a{
+    color: coral;
+    text-decoration: underline dotted;
+}
+
+.cookie_msg a:hover{
+    opacity: 0.8;
+}
+
+.cookie_msg .response_btns{
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+}
+
+.cookie_msg button{
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-family: "Manrope";
+    font-weight: 600;
+    font-size: clamp(14px, 1.5vw, 16px);
+    cursor: pointer;
+}
+
+.cookie_msg button:first-of-type{
+    color: #fff;
+    background-color: hsla(120, 61%, 60%, 0.8);
+}
+
+.cookie_msg button:last-of-type{
+    color: #333;
+}
+
+@keyframes open_cookie {
+    0%{
+        transform: translate(-50%, 100%);
+        opacity: 0;
+    }
+    100%{
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
+.close_cookie{
+    animation: close_cookie 0.5s ease-in !important;
+    animation-fill-mode: forwards;
+    animation-delay: 0s !important;
+}
+
+@keyframes close_cookie {
+    0%{
+        transform: translate(-50%, 0%);
+        opacity: 1;
+    }
+    100%{
+        transform: translate(-50%, 100%);
+        opacity: 0;
+        display: none ;
+    }
+}
+
+/*footer*/
 footer{
     background-color: #fff;
     border-top: 2px solid #e0e0e0;
@@ -302,8 +428,21 @@ footer{
 footer .container{
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     height: 100%;
+}
+
+footer .container div{
+    display: flex;
+    align-items: center;
+    gap: clamp(5px, 2vw, 10px);
+}
+
+footer .container div a{
+    font-size: clamp(10px, 2vw, 14px);
+    font-weight: 600;
+    color: #888;
+    transition: 0.1s ease-in;
 }
 
 footer .container p{
@@ -314,7 +453,9 @@ footer .container p{
 }
 
 @media (hover: hover){
-
+    footer .container div a:hover{
+        color: hsla(120, 61%, 70%, 0.8);
+    }
 }
 
 

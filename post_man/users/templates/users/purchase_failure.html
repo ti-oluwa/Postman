@@ -1,0 +1,28 @@
+{% extends 'messanger/base.html' %}
+{% load static %}
+
+{% block title %}
+    <title>Postman | Purchase Cancelled</title>
+{% endblock title %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'messanger/purchase.css' %}">
+{% endblock styles %}
+
+
+{% block content %}
+    <div class="be_container">
+        <div class="status_image">
+            <img src="{% static 'images/cancel.svg' %}" alt="cancel">
+        </div>
+        <div class="status_message">
+            <h3>Purchase Cancelled</h3>
+            <h4>{{ purchase.amount }} message credits for ${{ purchase.price }}</h4>
+            <p>Purchase ID - {{ purchase.sid }}</p>
+            <a href="{% url 'settings' %}" style="background-color: hsl(0, 70%, 56%);">Back to settings</a>
+        </div>
+    </div>
+{% endblock content %}
+    
+{% block script %}
+{% endblock script %}

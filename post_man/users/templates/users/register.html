@@ -1,0 +1,130 @@
+{% extends 'messanger/base.html' %}
+{% load static %}
+
+{% block title %}
+    <title>Postman | Sign in</title>
+{% endblock title %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'messanger/login.css' %}">
+    <link rel="stylesheet" href="{% static 'messanger/main.css' %}">
+{% endblock styles %}
+
+
+{% block content %}
+    <div id="login">
+        <h1>Sign up</h1>
+        <form id="r_form" action="{% url 'register' %}" method="post">
+            {% csrf_token %}
+            <div class="form_field">
+                <label for="user_id">Username</label>
+                <input type="text" title="What username would you like to use?" name="username" id="user_id" placeholder="Username" required autofocus=True autocomplete="username">
+                <p class="help_text">Your username is case-sensitive</p>
+            </div>
+            
+            <div class="form_field">
+                <label for="password1">Password</label>
+                <input type="password" title="Choose a password" minlength="6" name="password1" id="password1" placeholder="Enter password" required>
+                <p class="help_text">Password should be 6 characters or more and should not contain your username</p>
+            </div>
+
+            <div class="form_field">
+                <label for="password2">Confirm Password</label>
+                <input type="password" title="Enter the password you chose again" minlength="6" name="password2" id="password2" placeholder="Confirm password" required>
+                <p class="help_text">Enter password again</p>
+            </div>
+            <div class="form_field">
+                <label for="pass_question">Enter a Secret Question</label>
+                <input type="text" title="Enter a secret question that only you know the answer to" name="pass_question" id="pass_question" placeholder="What ...? or When ...? or Where...?" required>
+                <p class="help_text">
+                    You would need to answer this question to perform password reset. Make sure its something you can remember easily.
+                    Also this question must start with an interrogative pronoun like 'Who' or 'What'.
+                </p>
+            </div>
+            <div class="form_field">
+                <label for="pass_ans">Answer to Secret Question</label>
+                <input type="text" title="Answer the question above" name="pass_ans" id="pass_ans" placeholder="Answer the question above" required disabled>
+                <p class="help_text">Give an answer to your secret question</p>
+            </div>
+            <button type="submit" id="login_btn" >Register</button>
+        </form>
+        <div class="links">
+            <a href="{% url 'login' %}">Already have an account? Login</a>
+        </div>
+    </div>
+
+    {% if messages %}
+        <!-- notifications -->
+        <div class="notification_icon">
+            <img src="{% static 'images/bell-ring.svg' %}" alt="">
+            {% if messages %}
+                <span>{{ messages|length }}</span>
+            {% endif %}
+        </div>
+        <div class="notifications">
+            <img id="sub_icon" src="{% static 'images/bell.svg' %}" alt="" style="width: 30px; height: 30px;">
+            {% for message in messages %}
+                {% if 'info' in message.tags %}
+                    <div class="toast info">
+                        <img src="{% static 'images/info2.svg' %}" alt="" style="width: 20px; height: 20px;">
+                        <p>{{ message }}</p>
+                    </div>
+                {% elif  'success' in message.tags %}
+                    <div class="toast success">
+                        <img src="{% static 'images/tick.svg' %}" alt="" style="width: 20px; height: 20px;">
+                        <p>{{ message }}</p>
+                    </div>
+                {% elif  'error' in message.tags %}
+                    <div class="toast error">
+                        <img src="{% static 'images/cancel.svg' %}" alt="" style="width: 20px; height: 20px;">
+                        <p>{{ message }}</p>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+{% endblock content %}
+
+{% block script %}
+    <script type="text/javascript">
+        window.onload = () => {
+            // opens notifications shade
+            if (document.querySelector('.notifications')){
+                document.querySelector('.notification_icon').querySelector('img').classList.add('blink_img');
+                document.querySelector('.notification_icon').classList.add('blink_icon');
+                document.querySelector('.notification_icon').addEventListener('click', () => {
+                    document.querySelector('.notification_icon').querySelector('img').classList.remove('blink_img');
+                    document.querySelector('.notification_icon').classList.remove('blink_icon');
+                    document.querySelector('.notifications').classList.toggle('open_shade');
+                })
+            }
+
+            const r_form = document.querySelector('#r_form');
+            var pass_question = document.querySelector('#pass_question');
+            var pass_ans = document.querySelector('#pass_ans');
+
+            r_form.addEventListener('pointerover', () => {
+                if (pass_question.value != ''){
+                    pass_ans.disabled = false;
+                }else{
+                    pass_ans.disabled = true;
+                };
+            });
+
+            if(document.querySelector('#login').clientHeight > (window.innerHeight - 100)){
+                document.querySelector('#login').style.marginTop = (window.innerHeight * 0.25) + 'px';
+            }
+
+        }
+
+        window.onclick = function(event) {
+
+            // close notification shade on outside click
+            if(document.querySelector('.notifications') && !document.querySelector('.notification_icon').contains(event.target) && !document.querySelector('.notifications').contains(event.target) && document.querySelector('.notifications').classList.contains('open_shade')){
+                document.querySelector('.notifications').classList.remove('open_shade')
+            }
+
+        }
+    </script>
+{% endblock script %}

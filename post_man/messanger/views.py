@@ -3,10 +3,9 @@ from django.contrib import messages
 from django.views.generic import ListView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.utils import IntegrityError
-from users.models import EmailProfile, TelnyxProfile
-from .models import EmailAddress, PhoneNumber, TextMessage, Email, Attachment
+from users.models import EmailProfile, MessageProfile
+from .models import EmailAddress, PhoneNumber, TextMessage, Email, Attachment, BlackListedWord
 from django.http import HttpResponse, JsonResponse
-from django.contrib.auth import authenticate, login, logout
 import json, mimetypes, os, re, time
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
@@ -17,34 +16,7 @@ CustomUser = get_user_model()
 
 
 
-class LoginView(View):
-    '''LoginView is a class based view that handles the login process'''
-    template_name = 'messanger/login.html'
 
-    def get(self, request, *args, **kwargs):
-        return render(request, self.template_name)
-
-    def post(self, request, *args, **kwargs):
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            if self.request.GET.get('next'):
-                return redirect(self.request.GET.get('next')) 
-            return redirect('home')
-        
-        return render(request, self.template_name)
-
-
-class LogoutView(View):
-    '''LogoutView is a class based view that handles the logout process'''
-    def get(self, request, **kwargs):
-        logout(request)
-        return redirect('home')
-    
-    def post(self, request, **kwargs):
-        return HttpResponse(status=403)
 
 
 
@@ -96,90 +68,35 @@ class EmailView(LoginRequiredMixin, ListView):
         return self.model1.objects.filter(sent_by_id=self.request.user.id), self.model2.objects.filter(added_by_id=self.request.user.id)
 
 
-class SettingsView(LoginRequiredMixin, UserPassesTestMixin, View):
-    '''Handles the modification of user settings'''
-    model1 = EmailProfile
-    model2 = TelnyxProfile
+black_listed_words = [bad_word.word.lower() for bad_word in BlackListedWord.objects.all()]
 
-    def test_func(self):
-        if self.request.user.is_active:
-            return True
-        return False
-
-    def get(self, request, *args, **kwargs):
-        user = CustomUser.objects.get(id=request.user.id)
-        return render(request, 'messanger/settings.html', {'user': user})
- 
+class ValidateMessage(View):
     def post(self, request, *args, **kwargs):
-        user = CustomUser.objects.get(id= request.user.id)
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-
+        response ={}
         if is_ajax:
-            payload = request.POST
-            emailing_profiles = json.loads(payload['emailing_profiles'])
-            messaging_profiles = json.loads(payload['messaging_profiles'])
-            wants_random = json.loads(payload['wants_random'])
-            wants_history = json.loads(payload['wants_history'])
+            message = re.split(r"[\s,.;\-\?\!\(\)\:~'\[\]\{\}&_@#\*\^\>\<]", request.POST['message'])
+            bad_words = [word for word in message if word.lower() in black_listed_words]
+            bad_words_set = []
+            for bad_word in bad_words:
+                count = bad_words.count(bad_word)
+                if count > 1:
+                    bad_words_set.append('{}({})'.format(bad_word, count))
+                else:
+                    bad_words_set.append(bad_word)
 
-            #apply settings
-            user.wants_random = wants_random
-            user.wants_history = wants_history
-            user.save()
-
-            for profile_name, is_active in emailing_profiles.items():
-                try:
-                    email_profile = self.model1.objects.filter(owned_by=user, email=profile_name)[0]
-                    email_profile.is_active = bool(is_active)
-                    email_profile.save()
-                except self.model1.DoesNotExist:
-                    pass
-
-            for profile_name, is_active in messaging_profiles.items():
-                try:
-                    message_profile = self.model2.objects.filter(owned_by=user, number=profile_name)[0]
-                    message_profile.is_active = bool(is_active)
-                    message_profile.save()
-                except self.model2.DoesNotExist:
-                    pass
-            return JsonResponse(data={"success":'true'}, status=200)
-
-        else:
-            form_data = request.POST
-            if 'number' and 'api_key' in form_data.keys():
-                number = form_data['number']
-                api_key = form_data['api_key']
-                try:
-                    telnyx_profile = self.model2.objects.create(owned_by=user, number=number, api_key=api_key)
-                    telnyx_profile.save()
-                    messages.success(request, 'Profile added successfully')
-
-                except IntegrityError:
-                    messages.error(request, 'A profile with this number already exists')
-
-                except Exception as e:
-                    print(e)
-                    pass
-            elif 'email' and 'app_pass' in form_data.keys():
-                email = form_data['email']
-                app_pass = form_data['app_pass']
-                try:
-                    email_profile = self.model1.objects.create(owned_by=user, email=email, app_pass=app_pass)
-                    email_profile.save()
-                    messages.success(request, 'Profile added successfully')
-
-                except IntegrityError:
-                    messages.error(request, 'A profile with this email already exists')
-
-                except Exception as e:
-                    print(e)
-                    pass
-            return redirect('settings')
+            if len(bad_words_set) == 0:
+                response['message'] = 'success'
+            else:
+                response['message'] = 'error'
+                response['bad_words'] = list(set(bad_words_set))
+            return JsonResponse(data=response, status=200)
 
 
 class ProfileDeleteView(LoginRequiredMixin, UserPassesTestMixin, View):
     '''View for deleting messaging and email profiles'''
     model1 = EmailProfile
-    model2= TelnyxProfile
+    model2= MessageProfile
 
     def test_func(self):
         if self.kwargs['object_type'] == 'ep':
@@ -332,6 +249,7 @@ class AjaxView(LoginRequiredMixin, View):
             attached_files = []
             new_contacts = 0
             lines = []
+            html_message = None
 
             for key in files.keys():
                 if key == 'file':
@@ -365,6 +283,10 @@ class AjaxView(LoginRequiredMixin, View):
                             return JsonResponse(data={'success':'false',}, status=400)
                         else:
                             pass
+            for key in files.keys():
+                if key.startswith('attached_html_file'):
+                    html_file = files[key]
+                    html_message = html_file.read().decode('utf-8')
 
             # for sms
             if action == 'send_message':
@@ -420,6 +342,17 @@ class AjaxView(LoginRequiredMixin, View):
 
                 if message_form['message'] and receivers != []:
                     message = message_form['message']
+                    if len(message) > 160:
+                        messages.error(request, 'Failed to send message: SMS should not exceed 160 characters')
+                        return JsonResponse(data={'success':'false',}, status=400)
+                    message_list = re.split(r"[\s,.;\-\?\!\(\)\:~'\[\]\{\}&_@#\*\^\>\<]", message.lower())
+                    bad_words = [word for word in message_list if word.lower() in black_listed_words]
+                    if bad_words != []:
+                        if len(bad_words) == 1:
+                            messages.error(request, f'Failed to send message: {", ".join(bad_words)} is not allowed in message')
+                        else:
+                            messages.error(request, f'Failed to send message: {", ".join(bad_words)} are not allowed in message')
+                        return JsonResponse(data={'success':'false',}, status=400)
                     # create a new message object
                     new_message = TextMessage.objects.create(message=message, sent_by=request.user)
                     new_message.save()
@@ -429,12 +362,23 @@ class AjaxView(LoginRequiredMixin, View):
                         messages.success(request, response)
                         if len(new_message.sent_to.all()) > 1:
                             messages.success(request, f'{len(new_message.sent_to.all())} messages sent')
-                        else:
+                        elif len(new_message.sent_to.all()) < 1 and len(new_message.sent_to.all()) != 0:
                             messages.success(request, f'{len(new_message.sent_to.all())} message sent')
-                        
+
+                        if len(new_message.sent_to.all()) < len(receivers):
+                            diff = len(receivers) - len(new_message.sent_to.all())
+                            if diff > 1:
+                                messages.info(request, f'{diff} messages failed to send')
+                            elif diff == len(receivers):
+                                new_message.delete()
+                            else:
+                                messages.info(request, f'{diff} message failed to send')  
+                    
                     else:
+                        if len(new_message.sent_to.all()) == 0:
+                            new_message.delete()
                         messages.error(request, response)
-                        messages.error(request, 'Failed to send message')
+                        
                     time.sleep(2)
                     return JsonResponse(data={'success':'true',}, status=200)
                 elif receivers == []:
@@ -507,8 +451,22 @@ class AjaxView(LoginRequiredMixin, View):
                     else:
                         cc = None
                     body = message_form['body']
+                    if len(body) > 4500:
+                        messages.error(request, 'Failed to send mail: Mail body should not exceed 4500 characters')
+                        return JsonResponse(data={'success':'false',}, status=400)
+                    message_list = re.split(r"[\s,.;\-\?\!\(\)\:~'\[\]\{\}&_@#\*\^\>\<]", body.lower())
+                    bad_words = [word for word in message_list if word.lower() in black_listed_words]
+                    if bad_words != []:
+                        if len(bad_words) == 1:
+                            messages.error(request, f'Failed to send message: {", ".join(bad_words)} is not allowed in mails')
+                        else:
+                            messages.error(request, f'Failed to send message: {", ".join(bad_words)} are not allowed in mails')
+                        return JsonResponse(data={'success':'false',}, status=400)
                     # create a new message object
-                    new_email = Email.objects.create(subject=subject, bcc=bcc, cc=cc, body=body, sent_by=request.user)
+                    if html_message and len(html_message) > 5:
+                        new_email = Email.objects.create(subject=subject, bcc=bcc, cc=cc, body=html_message, sent_by=request.user, is_html=True)
+                    else:
+                        new_email = Email.objects.create(subject=subject, bcc=bcc, cc=cc, body=body, sent_by=request.user)
                     new_email.save()
                     for file in attached_files:
                         attachment = Attachment.objects.create(file=file, added_by=request.user)
@@ -519,14 +477,25 @@ class AjaxView(LoginRequiredMixin, View):
                     is_sent, response= new_email.send(receivers)
                     if is_sent:
                         messages.success(request, response)
-                        if new_email.sent_by.wants_history:
-                            if len(new_email.sent_to.all()) > 1:
-                                messages.success(request, f'{len(new_email.sent_to.all())} emails sent')
+                        if len(new_email.sent_to.all()) > 1:
+                            messages.success(request, f'{len(new_email.sent_to.all())} emails sent')
+                        elif len(new_email.sent_to.all()) < 1 and len(new_email.sent_to.all()) != 0:
+                            messages.success(request, f'{len(new_email.sent_to.all())} email sent')
+
+                        if len(new_email.sent_to.all()) < len(receivers):
+                            diff = len(receivers) - len(new_email.sent_to.all())
+                            if diff > 1:
+                                messages.info(request, f'{diff} emails failed to send')
+                            elif diff == 0:
+                                new_email.delete()
                             else:
-                                messages.success(request, f'{len(new_email.sent_to.all())} email sent')
+                                messages.info(request, f'{diff} email failed to send')
                         
                     else:
+                        if len(new_email.sent_to.all()) == 0:
+                            new_email.delete()
                         messages.error(request, response)
+                        
                     time.sleep(2)
                     return JsonResponse(data={'success':'true',}, status=200)
                 elif receivers == []:

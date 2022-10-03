@@ -174,8 +174,9 @@
         <form action="" id="message_form" method="post" class="message_popup">
             {% csrf_token %}
             <label for="message">Enter message</label>
+            <p class="help_text"></p>
             <div>
-                <textarea id="message" placeholder="Enter message here" required maxlength="512"></textarea>
+                <textarea id="message" placeholder="Enter message here" required maxlength="160" minlength="10" title="Type in your message"></textarea>
                 <img id="send_btn" src="{% static 'images/send2.svg' %}" alt="send">
             </div>
         </form>
@@ -270,7 +271,7 @@
                 document.querySelector('.lds-ellipsis').querySelectorAll('div').forEach(div => {
                     div.classList.remove('play');
                 })
-            }, 500);
+            }, 200);
             
         };
     };
@@ -357,8 +358,27 @@
             })
         }
 
-        var messages = document.querySelectorAll('.message');
+        const messages = document.querySelectorAll('.message');
         var contacts = document.querySelectorAll('.contact');
+        var show_delay = 0.2;
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting){
+                    entry.target.classList.add('show_messages');
+                }
+            })
+        });
+        messages.forEach((message) => {
+            observer.observe(message);
+            message.style.animationDelay = `${show_delay}s`;
+            show_delay += 0.1;
+        });
+
+        setTimeout(() => {
+            messages.forEach((message) => {
+                message.style.animationDelay = '0.2s';
+            });
+        }, 1000);
 
         if (messages.length != 0) {
             // messages[0].scrollIntoView();
@@ -799,16 +819,76 @@
             });
         });
 
+        var message_field = document.querySelector('#message');
+
+        function send(){
+            // checks if the message is valid
+            payload = new FormData();
+            payload.append('message', message_field.value)
+            $.ajax({
+                url: '{% url "validate-message" %}',
+                method: 'POST',
+                cache: false,
+                dataType: 'json',
+                contentType: false,
+                processData: false,
+                data: payload,
+                headers:{
+                    'X-CSRFToken': getCookie("csrftoken"),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function (response){
+                    if(response['message'] == "success"){
+                        message_field.style.borderColor = '';
+                        document.querySelector('.help_text').style.display = 'none';
+                        document.querySelector('#message').title = 'Type in your message';
+                        document.querySelector('.help_text').innerText = '';
+                    }
+                    else if(response['message'] == "error"){
+                        document.querySelector('.help_text').style.display = 'block';
+                        document.querySelector('#message').title = 'Message should not contain the words above';
+                        document.querySelector('.help_text').innerText = 'Blacklisted words found!: ' + response['bad_words'];
+                        message_field.style.borderColor = 'hsla(0, 61%, 70%, 0.8)';
+                    }
+                },
+            });
+        };
+
+        
+        var sendAfter = 200;
+        message_field.addEventListener('keyup', (e) => {
+            e.stopImmediatePropagation()
+            clearTimeout(timeout);
+            var timeout = setTimeout(send, sendAfter);  
+        });
+
         
         document.querySelector('#send_btn').addEventListener('click', (e) => {
             var message = document.querySelector('#message').value;
-            if (message != '' && message.length >= 10 && message.length <= 512){
+            if (message != '' && message.length >= 10 && message.length <= 160){
+                if(document.querySelector('.help_text').style.display != 'none'){
+                    document.querySelector('#message_form').querySelector('label').innerText = 'Remove blacklisted words';
+                    document.querySelector('#message_form').querySelector('label').style.color = 'hsla(0, 61%, 70%, 0.8)';
+                    setTimeout(() => {
+                        document.querySelector('#message_form').querySelector('label').innerText = 'Enter message';
+                        document.querySelector('#message_form').querySelector('label').style.color = '';
+                        document.querySelector('#message').title = 'Type in your message';
+                    }, 3000);
+                    document.querySelector('#message').title = 'Message should not contain the words above';
+                }else{
                 document.querySelector('.confirm_send_popup').classList.add('show_confirm_send_popup');
                 document.querySelector('body').classList.add('stop_scroll');
+                };
             }
             else{
-                document.querySelector('#message').value = '';
-                document.querySelector('#message').placeholder = 'Message must be between 10 and 512 characters';
+                document.querySelector('#message_form').querySelector('label').innerText = 'Message should be 10 and 160 characters long';
+                document.querySelector('#message_form').querySelector('label').style.color = 'hsla(0, 61%, 70%, 0.8)';
+                setTimeout(() => {
+                    document.querySelector('#message_form').querySelector('label').innerText = 'Enter message';
+                    document.querySelector('#message_form').querySelector('label').style.color = '';
+                    document.querySelector('#message').title = 'Type in your message';
+                }, 3000);
+                document.querySelector('#message').title = 'Message must be between 10 and 160 characters long';
                 document.querySelector('#message').style.borderColor = 'hsla(0, 61%, 70%, 0.8)';
                 document.querySelector('#message').addEventListener('input', () => {
                     document.querySelector('#message').placeholder = 'Enter message';
@@ -889,6 +969,47 @@
             document.querySelector('.confirm_send_popup').classList.remove('show_confirm_send_popup');
             document.querySelector('body').classList.remove('stop_scroll');
         });
+
+        const accept_btn = document.getElementById('accept');
+        const decline_btn = document.getElementById('decline');
+        if(document.querySelector('.cookie_msg') && !document.querySelector('.cookie_msg').contains(event.target) && !document.querySelector('.cookie_msg').classList.contains('close_cookie')){
+            document.querySelector('.cookie_msg').classList.add('close_cookie');
+        }
+        if (accept_btn && accept_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'accept',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        }
+        else if (decline_btn && decline_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'decline',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        };
+        
  
     };
 </script>

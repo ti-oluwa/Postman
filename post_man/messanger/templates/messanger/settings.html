@@ -12,14 +12,61 @@
     {% block content %}
         <div class="be_container">
             <div class="settings_head">
-                <h1>User Settings</h1>
-                <img src="{% static 'images/settings1.svg' %}" alt="" style="width: clamp(20px, 5vw, 30px);
-                height: clamp(20px, 5vw, 30px);">
+                <div>
+                    <h1>User Settings</h1>
+                    <img src="{% static 'images/settings1.svg' %}" alt="" style="width: clamp(20px, 5vw, 30px);
+                    height: clamp(20px, 5vw, 30px);">
+                </div>
+                {% if not user.is_privileged %}
+                <button id="topup_btn">
+                    <p>Top up</p>
+                    <img src="{% static 'images/balance.svg' %}" alt="">
+                </button>
+                {% endif %}
             </div>
             <div class="border_btm"></div>
 
+            {% if not user.is_privileged %}
+                <!-- PURCHASE POPUP -->
+                <div class="purchase_popup">
+                    <h2 class="heading">Credit Purchase</h2>
+                    <div class="list">
+                    {% for package in packages %}
+                        <div class="list_item">
+                            <div class="details">
+                                <p class="credit">{{ package.amount }} credits</p>
+                                <p>${{ package.price }}</p>
+                            </div>
+                            <div class="count">
+                                <button class="plus">+</button>
+                                <p>0</p>
+                                <button class="minus">-</button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                    <div class="summary">
+                        <h5>Credit units: <span id="total_amount">0</span></h5>
+                        <h5>Price: <span id="total_price">$0.00</span></h5>
+                        <a id="purchase_btn">Purchase</a>
+                    </div>
+                </div>
+            {% endif %}
+
+
             <div class="user_details">
-                <h2>{{ user.username }}</h2>
+                <div>
+                    <h2>{{ user.username }}</h2>
+                    {% if user.is_privileged %}
+                        <small class="elite">Credits: Unlimited</small>
+                    {% elif user.message_credit > 500 %}
+                        <small class="okay">Credits: {{user.message_credit}}</small>
+                    {% elif user.message_credit < 200 %}
+                        <small class="verylow">Credits: {{user.message_credit}}</small>
+                    {% elif user.message_credit < 500 %}
+                        <small class="low">Credits: {{user.message_credit}}</small>
+                    {% endif %}
+                </div>
                 <div>
                     <p>{{ user.user_idno }}</p>
                     {% if user.can_send %}
@@ -52,7 +99,11 @@
             <!-- EMAIL PROFILES -->
             <div class="profiles" id="email_profiles">
                 <div class="profile_head">
-                    <h3>Emailing Profiles</h3>
+                    {% if user.email_profiles.all|length_is:'0' %}
+                        <h3>Emailing Profiles</h3>
+                    {% else %}
+                        <h3>Emailing Profiles <small style="color: hsla(120, 60%, 61%, 0.8);">({{ user.email_profiles.all|length }})</small></h3>
+                    {% endif %}
                     <img id="email_add_btn" src="{% static 'images/add.svg' %}" alt="" style="width: clamp(20px, 5vw, 30px);
                     height: clamp(20px, 5vw, 30px);">
                 </div>
@@ -60,7 +111,8 @@
                     <div class="profile">
                         <div>
                             <p class="profile_name">{{ email_profile.email }}</p>
-                            <p class="profile_pass">{{ email_profile.get_app_pass | truncatechars:'10' | slice:':-1' }}...</p>
+                            <p class="profile_pass">{{ email_profile.get_trunc_app_pass }}</p>
+                            <small class="profile_type">{{ email_profile.type|title }}</small>
                             <a href="{% url 'delete-profile' object_type='ep' pk=email_profile.id %}">delete</a>
                         </div>
 
@@ -86,11 +138,16 @@
                 {% csrf_token %}
                 <div class="field">
                     <label for="email">Email address</label>
-                    <input type="email" name="email" id="email" placeholder="tersoelama@...com" required>
+                    <input type="email" name="email" id="email" placeholder="tersoelama@...com" required pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}$">
                 </div>
                 <div class="field">
                     <label for="password">App password</label>
                     <input type="password" name="app_pass" id="password" required>
+                </div>
+                <small>Want to use a custom server address?</small>
+                <div class="field" id="server_div" style="display:none;">
+                    <label for="custom_server">Custom host address</label>
+                    <input type="text" name="custom_host" id="custom_server" title="Enter your preferred host address" placeholder="e.g, smtp.live.com">
                 </div>
                 <button type="submit">Add</button>
             </form>
@@ -98,24 +155,29 @@
             <!-- MESSAGING PROFILES -->
             <div class="profiles" id="msg_profiles">
                 <div class="profile_head">
-                    <h3>Messaging Profiles</h3>
+                    {% if user.message_profiles.all|length_is:'0' %}
+                        <h3>Messaging Profiles</h3>
+                    {% else %}
+                        <h3>Messaging Profiles <small style="color: hsla(120, 60%, 61%, 0.8);">({{ user.message_profiles.all|length }})</small></h3>
+                    {% endif %}
                     <img id="msg_add_btn" src="{% static 'images/add.svg' %}" alt="" style="width: clamp(20px, 5vw, 30px);
                     height: clamp(20px, 5vw, 30px);">
                 </div>
-                {% for telnyx_profile in user.telnyx_profiles.all %}
+                {% for message_profile in user.message_profiles.all %}
                     <div class="profile">
                         <div>
-                            <p class="profile_name">{{ telnyx_profile.number }}</p>
-                            <p class="profile_pass">{{ telnyx_profile.get_api_key | truncatechars:'20' | slice:":-1" }}......</p>
-                            <a href="{% url 'delete-profile' object_type='mp' pk=telnyx_profile.id %}">delete</a>
+                            <p class="profile_name">{{ message_profile.number }}</p>
+                            <p class="profile_pass">{{ message_profile.get_trunc_api_key }}</p>
+                            <small class="profile_type">{{ message_profile.api_provider|title }}</small>
+                            <a href="{% url 'delete-profile' object_type='mp' pk=message_profile.id %}">delete</a>
                         </div>
 
                         <div class="toggle_container">
-                            <label for="{{ telnyx_profile.number }}">{{ telnyx_profile.number }}</label>
-                            {% if telnyx_profile.is_active %}
-                                <input type="checkbox" name="{{ telnyx_profile.number }}" id="{{ telnyx_profile.number }}" checked>
+                            <label for="{{ message_profile.number }}">{{ message_profile.number }}</label>
+                            {% if message_profile.is_active %}
+                                <input type="checkbox" name="{{ message_profile.number }}" id="{{ message_profile.number }}" checked>
                             {% else %}
-                                <input type="checkbox" name="{{ telnyx_profile.number }}" id="{{ telnyx_profile.number }}">
+                                <input type="checkbox" name="{{ message_profile.number }}" id="{{ message_profile.number }}">
                             {% endif %}
                             <div class="toggle">
                                 <div class="toggler"></div>
@@ -131,15 +193,43 @@
             <form action="{% url 'settings' %}" id="msg_add_form" class="add_form" method="POST">
                 {% csrf_token %}
                 <div class="field">
-                    <label for="number">Telynx number</label>
-                    <input type="text" name="number" id='number' placeholder="+...." required>
+                    <label for="provider">Provider</label>
+                    <select id="provider" required autofocus name="provider" form="msg_add_form">
+                        <option value="telnyx">Telnyx</option>
+                        <option value="twilio">Twilio</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="number">Number or Sender ID</label>
+                    <input type="text" name="number" id='number' placeholder="+01...." required pattern="^\+(?:[0-9] ?){10,14}[0-9]$" title="Phone number should conform with the e164 number plan">
                 </div>
                 <div class="field">
                     <label for="api_key">API key</label>
                     <input type="password" name="api_key" id="api_key" required>
                 </div>
+                <div class="field" id="sid_div" style="display:none;">
+                    <label for="account_sid">Account SID</label>
+                    <input type="text" name="account_sid" id="account_sid">
+                </div>
                 <button type="submit">Add</button>
             </form>
+
+            <!-- USE DEFAULT -->
+            <div class="setting">
+                <h3>Use default senders</h3>
+                <div class="toggle_container">
+                    <label for="wants_default">wants_default</label>
+                    {% if user.wants_default %}
+                        <input type="checkbox" id="wants_default" checked>
+                    {% else %}
+                        <input type="checkbox" id="wants_default">
+                    {% endif %}
+                    <div class="toggle">
+                        <div class="toggler"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="border_sec"></div>
 
             <!-- RANDOMIZATION -->
             <div class="setting">
@@ -158,6 +248,23 @@
             </div>
             <div class="border_sec"></div>
 
+            <!-- ENABLE COOKIES -->
+            <div class="setting">
+                <h3>Use cookies</h3>
+                <div class="toggle_container">
+                    <label for="accepted_cookies">accepted_cookies</label>
+                    {% if user.accepted_cookies %}
+                        <input type="checkbox" id="accepted_cookies" checked>
+                    {% else %}
+                        <input type="checkbox" id="accepted_cookies">
+                    {% endif %}
+                    <div class="toggle">
+                        <div class="toggler"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="border_sec"></div>
+
             <!-- DELETE ALL CONTACTS -->
             <div class="del_all">
                 {% if user.added_phone_numbers.all|length_is:'0' and user.added_email_addresses.all|length_is:'0' %}
@@ -165,6 +272,31 @@
                 {% else %}
                     <a href="{% url 'delete-contacts' %}">Clear email and contact list</a>
                 {% endif %}
+            </div>
+
+            {% if user.is_admin %}
+                <!-- ADD DEFAULT  -->
+                <div class="del_all">
+                    <a href="{% url 'add-default-items' %}">Add default prices and blacklisted words</a>
+                </div>
+            {% endif %}
+            
+            <!-- DELETE USER ACCOUNT -->
+            <div class="del_all">
+                <a id="user_del">Delete my account</a>
+            </div>
+
+            <div class="confirm_del_popup">
+                <img class="image" src="{% static 'images/caution3.svg' %}" alt="confirm">
+                <p>Are you sure you want to proceed?</p>
+                <div class="btns">
+                    <div class="yes">
+                        <a href="{% url 'delete-user' %}"><img src="{% static 'images/tick.svg' %}" alt=""></a>
+                    </div>
+                    <div class="no">
+                        <img src="{% static 'images/cancel.svg' %}" alt="{{ user.id }}">
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -219,19 +351,249 @@
 
         if(document.querySelector('#email_add_form').classList.contains('show2')  && !document.querySelector('#email_add_form').contains(event.target) && !document.querySelector('#email_add_btn').contains(event.target)){
             document.querySelector('#email_add_form').classList.remove('show2');
+            document.querySelector('#email_add_form').reset();
             document.body.classList.remove('stop_scroll');
             document.querySelectorAll('.toggle_container').forEach((toggle) => {
-                toggle.style.pointerEvents = 'auto'
+                toggle.style.pointerEvents = 'auto';
             });
+            setTimeout(() => {
+                document.querySelector('.be_container').querySelectorAll('a').forEach((link) => {
+                    link.style.pointerEvents = 'auto';
+                });
+            }, 500);
+            var custom_server_link = document.querySelector('#email_add_form').querySelector('small');
+            document.querySelector('#server_div').style.display = 'none';
+            custom_server_link.style.display = '';
         };
 
         if(document.querySelector('#msg_add_form').classList.contains('show2')  && !document.querySelector('#msg_add_form').contains(event.target) && !document.querySelector('#msg_add_btn').contains(event.target)){
             document.querySelector('#msg_add_form').classList.remove('show2');
+            document.querySelector('#email_add_form').reset();
             document.body.classList.remove('stop_scroll');
             document.querySelectorAll('.toggle_container').forEach((toggle) => {
-                toggle.style.pointerEvents = 'auto'
+                toggle.style.pointerEvents = 'auto';
+            });
+            setTimeout(() => {
+                document.querySelector('.be_container').querySelectorAll('a').forEach((link) => {
+                    link.style.pointerEvents = 'auto';
+                });
+            }, 500);
+        };
+
+        var select = document.querySelector('#provider');
+        if (select.contains(event.target)){
+            var value = select.value;
+            if (select.value == 'twilio'){
+                document.querySelector('#sid_div').style.display = "block";
+                document.querySelector('label[for=api_key]').innerText = 'Auth token';
+                document.querySelector('#account_sid').required = true;
+            };
+        
+            if (select.value == 'telnyx'){
+                document.querySelector('#sid_div').style.display = "none";
+                document.querySelector('label[for=api_key]').innerText = 'Api key';
+                document.querySelector('#account_sid').required = false;
+            };
+        };
+
+        var custom_server_link = document.querySelector('#email_add_form').querySelector('small');
+        if (custom_server_link.contains(event.target)){
+            document.querySelector('#server_div').style.display = '';
+            custom_server_link.style.display = 'none';
+        };
+
+        var user_del = document.querySelector('#user_del');
+        var confirm_del_popup = document.querySelector('.confirm_del_popup');
+        if (user_del.contains(event.target) && !confirm_del_popup.classList.contains('show_confirm_del_popup')){
+            document.querySelector('.confirm_del_popup').classList.add('show_confirm_del_popup');
+            document.body.classList.add('stop_scroll');
+            document.querySelector('.be_container').querySelectorAll('a').forEach((link) => {
+                if(link.parentElement.className != 'yes'){
+                    link.style.pointerEvents = 'none';
+                };  
+            });
+        }
+        else if( (!confirm_del_popup.contains(event.target) && confirm_del_popup.classList.contains('show_confirm_del_popup')) || confirm_del_popup.querySelector('.no').contains(event.target)){
+            document.querySelector('.confirm_del_popup').classList.remove('show_confirm_del_popup');
+            document.body.classList.remove('stop_scroll');
+            setTimeout(() => {
+                document.querySelector('.be_container').querySelectorAll('a').forEach((link) => {
+                    link.style.pointerEvents = 'auto';
+                });
+            }, 500);
+        };
+        
+        const accept_btn = document.getElementById('accept');
+        const decline_btn = document.getElementById('decline');
+        if(document.querySelector('.cookie_msg') && !document.querySelector('.cookie_msg').contains(event.target) && !document.querySelector('.cookie_msg').classList.contains('close_cookie')){
+            document.querySelector('.cookie_msg').classList.add('close_cookie');
+        }
+        if ( accept_btn && accept_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'accept',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        }
+        else if (decline_btn && decline_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'decline',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
             });
         };
+
+
+        var counts = document.querySelectorAll('.count')
+        var list_items = document.querySelectorAll('.list_item');
+        var purchase_btn = document.querySelector('#purchase_btn');
+        var topup_btn = document.querySelector('#topup_btn');
+        var purchase_popup = document.querySelector('.purchase_popup');
+
+        if(topup_btn && purchase_popup && topup_btn.contains(event.target) && !purchase_popup.classList.contains('show2')){
+            purchase_popup.classList.add('show2');
+            var delay = 0.1;
+            list_items.forEach(list_item => {
+                list_item.style.animationDelay = delay + 's';
+                delay += 0.1;
+            });
+            document.body.classList.add('stop_scroll');
+            document.querySelectorAll('.toggle_container').forEach((toggle) => {
+                toggle.style.pointerEvents = 'none';
+            });
+            document.querySelector('.be_container').querySelectorAll('a').forEach((link) => {
+                if (link.id != 'purchase_btn'){
+                    link.style.pointerEvents = 'none';
+                };
+            });
+        }else if (topup_btn && purchase_popup && purchase_popup.classList.contains('show2') && !purchase_popup.contains(event.target)){
+            purchase_popup.classList.remove('show2');
+            document.body.classList.remove('stop_scroll');
+            document.querySelectorAll('.toggle_container').forEach((toggle) => {
+                toggle.style.pointerEvents = 'auto';
+            });
+            setTimeout(() => {
+                document.querySelector('.be_container').querySelectorAll('a').forEach((link) => {
+                    link.style.pointerEvents = 'auto';
+                });
+            }, 500);
+            
+            counts.forEach((count)=>{
+                count.querySelector('p').innerText = 0;
+            });
+
+            purchase_popup.querySelector('.summary').querySelector('#total_price').innerText = '$0.00';
+            purchase_popup.querySelector('.summary').querySelector('#total_amount').innerText = 0;
+        };
+
+        if (list_items && purchase_btn && counts){
+            counts.forEach((count)=>{
+                var buttons = count.querySelectorAll('button');
+                buttons.forEach((button)=>{
+                    button.addEventListener('click', (e) => {
+                        e.stopImmediatePropagation();
+                        var count_value = parseInt(count.querySelector('p').innerText);
+                        if (e.target.classList.contains('plus') && count_value >= 0){
+                            count_value++;
+                        }
+                        else if (e.target.classList.contains('minus') && count_value > 0){
+                            count_value--;
+                        }
+                        count.querySelector('p').innerText = count_value;
+
+                        var payload = {};
+                        var form_data = {};
+                        list_items.forEach((item)=>{
+                            var key = item.querySelector('.credit').innerText;
+                            var val = item.querySelector('.count').querySelector('p').innerText
+                            payload[key.replace(' credits', '')]= val;
+                        });
+                        var action = 'process_data';
+                        form_data['payload'] = JSON.stringify(payload);
+                        form_data['action'] = action;
+                        $.ajax({
+                                url: '{% url "purchase" %}',
+                                method: 'POST',
+                                data: form_data,
+                                dataType: 'json',
+                                cache: false,
+                                headers: {
+                                    'X-CSRFToken': getCookie('csrftoken'),
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                },
+                                success: function(response){
+                                    if (response['status'] == 'success' && response['price']){
+                                        document.querySelector('.purchase_popup').querySelector('.summary').querySelector('#total_price').innerText = '$'+response['price'];
+                                        document.querySelector('.purchase_popup').querySelector('.summary').querySelector('#total_amount').innerText = '$'+response['amount'];
+                                    }else if (response['status'] == 'error'){
+                                        window.location.reload()
+                                    }else if (response['status'] == 'success'){
+                                        window.location.reload()
+                                    }
+                                }
+                        }); 
+                    });
+                });
+                
+            });
+
+            purchase_btn.addEventListener('click', (e) => {
+                e.stopImmediatePropagation()
+                purchase_btn.style.pointerEvents = 'none';
+                var payload = {};
+                var form_data = {};
+                list_items.forEach((item)=>{
+                    var key = item.querySelector('.credit').innerText;
+                    var val = item.querySelector('.count').querySelector('p').innerText
+                    payload[key.replace(' credits', '')]= val;
+                });
+                var action = 'purchase';
+                form_data['payload'] = JSON.stringify(payload);
+                form_data['action'] = action;
+                $.ajax({
+                    url: '{% url "purchase" %}',
+                    method: 'POST',
+                    data: form_data,
+                    dataType: 'json',
+                    cache: false,
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    success: function(response){
+                        if (response['status'] == 'success'){
+                            charge_id = response['charge_id']
+                            window.location = '{% url "confirm-purchase" %}?charge_id='+charge_id;
+                        }
+                        else if (response['status'] == 'error'){
+                            window.location.reload();
+                        };
+
+                    }
+                }); 
+            });
+        };   
+
     };
 
 
@@ -256,6 +618,8 @@
                     messaging_profiles = {};
                     wants_history = document.querySelector('#wants_history').checked;
                     wants_random = document.querySelector('#wants_random').checked;
+                    wants_default = document.querySelector('#wants_default').checked;
+                    accepted_cookies = document.querySelector('#accepted_cookies').checked;
                     if(document.querySelector('#email_profiles').querySelector('input')){
                         document.querySelector('#email_profiles').querySelectorAll('input').forEach(profile => {
                             emailing_profiles[profile.id] = profile.checked;
@@ -271,6 +635,8 @@
                     payload.append('messaging_profiles', JSON.stringify(messaging_profiles));
                     payload.append('wants_random', wants_random);
                     payload.append('wants_history', wants_history);
+                    payload.append('wants_default', wants_default);
+                    payload.append('accepted_cookies', accepted_cookies);
 
                     $.ajax({
                         url: '{% url "settings" %}',
@@ -299,6 +665,9 @@
             document.querySelectorAll('.toggle_container').forEach((toggle) => {
                 toggle.style.pointerEvents = 'none'
             });
+            document.querySelector('.be_container').querySelectorAll('a').forEach((link) => {
+                link.style.pointerEvents = 'none'
+            });
         });
 
         document.querySelector('#msg_add_btn').addEventListener('click', () => {
@@ -307,7 +676,12 @@
             document.querySelectorAll('.toggle_container').forEach((toggle) => {
                 toggle.style.pointerEvents = 'none'
             });
+            document.querySelector('.be_container').querySelectorAll('a').forEach((link) => {
+                link.style.pointerEvents = 'none'
+            });
         });
+
+
     };
 </script>
 {% endblock script %}

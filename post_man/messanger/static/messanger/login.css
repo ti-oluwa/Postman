@@ -177,11 +177,31 @@ button:disabled{
     color: var(--body-bg-color);
 }
 
+.links{
+    display: flex;
+    /* flex-direction: column; */
+    width: 100%;
+    gap: 5px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.links a{
+    font-size: clamp(8px, 2vw, 12px);
+    font-weight: 600;
+    color: #888;
+    text-decoration: none;
+}
+
+
 @media (hover:hover){
     #login_btn:hover{
         background-color: hsla(120, 60%, 60%);
         color: var(--body-bg-color);
         box-shadow: 0px 4px 4px rgba(0,0,0,0.25);
+    }
+    .links a:hover{
+        color: hsla(120, 60%, 70%);
     }
 }
 

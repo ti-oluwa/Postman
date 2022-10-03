@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.generic import TemplateView
 from .views import (MessageView, AjaxView, EmailView, AjaxDeleteView, RetryView,
-                                 DownloadView, SettingsView, ProfileDeleteView, DeleteAllContactsView)
+                                 DownloadView, ProfileDeleteView, DeleteAllContactsView, ValidateMessage)
 
 urlpatterns = [
     path('', TemplateView.as_view(template_name='messanger/home.html'), name='home'),
@@ -11,7 +11,7 @@ urlpatterns = [
     path('delete/', AjaxDeleteView.as_view(), name='delete'),
     path('retry/', RetryView.as_view(), name='retry'),
     path('download/attachment/', DownloadView.as_view(), name='download'),
-    path('settings/', SettingsView.as_view(), name='settings'),
     path('delete/profile/<str:object_type>/<int:pk>/', ProfileDeleteView.as_view(), name='delete-profile'),
     path('delete/all_contacts/', DeleteAllContactsView.as_view(), name='delete-contacts'),
+    path('validate/', ValidateMessage.as_view(), name='validate-message'),
 ]

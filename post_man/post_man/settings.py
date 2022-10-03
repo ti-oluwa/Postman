@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 with open(os.path.join(BASE_DIR, 'messanger/static') + '/images/config.json') as f:
     config = json.load(f)
 
-SECRET_KEY = config.get('SECRET_KEY')
+SECRET_KEY = config.get('SECRET_KEY', '')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'telnyx',
     'numpy',
     'cryptography',
+    'twilio',
+    'coinbase_commerce',
 ]
 
 MIDDLEWARE = [
@@ -58,6 +60,17 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
+#         'LOCATION': {
+#             '127.0.0.1:8000'
+#         }
+#     }
+# }
+
+# SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 ROOT_URLCONF = 'post_man.urls'
 
@@ -151,6 +164,9 @@ MEDIA_URL = 'media/'
 
 SESSION_COOKIE_AGE = 86400
 
+if DEBUG:
+    SESSION_COOKIE_SECURE = True
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
@@ -160,4 +176,27 @@ LOGIN_URL = 'login'
 
 LOGIN_REDIRECT_URL = 'home'
 
+with open(STATIC_ROOT + '/images/accounts.json', 'r') as f:
+    account = json.load(f)[0]
 
+EMAIL_HOST = 'smtp.gmail.com'
+
+EMAIL_PORT = 587
+
+EMAIL_HOST_USER = account['auth_user']
+
+EMAIL_HOST_PASSWORD = account['auth_pass']
+
+EMAIL_USE_TLS = True
+
+SERVER_EMAIL = account['auth_user']
+
+ADMINS = ['tholuwarlarshe2003@gmail.com']
+
+MANAGERS = [ admin for admin in ADMINS ]
+
+COINBASE_COMMERCE_API_KEY = config.get('COINBASE_COMMERCE_API_KEY', '')
+
+COINBASE_COMMERCE_WEBHOOK_SHARED_SECRET = config.get('COINBASE_COMMERCE_WEBHOOK_SHARED_SECRET', '')
+
+POSTMAN_DOMAIN_URL = 'https://127.0.0.1:8000'

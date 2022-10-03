@@ -1,0 +1,28 @@
+{% extends 'messanger/base.html' %}
+{% load static %}
+
+{% block title %}
+    <title>Postman | Confirm Purchase</title>
+{% endblock title %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'messanger/confirm_purchase.css' %}">
+{% endblock styles %}
+
+
+{% block content %}
+    {% if charge and purchase %}
+    <div class="be_container">
+        <div class="purchase_details">
+            <h1 class="title">{{ charge.name }}</h1>
+            <h3 class="description">{{ charge.description }}</h3>
+            <p class="purchase_id">Purchase ID - {{ purchase.sid }}</p>
+        </div>
+        <a href="{{ charge.hosted_url }}" id="proceed">Confirm purchase</a>
+        <a href="{% url 'purchase' %}?action=cancel&&purchase_id={{ purchase.sid }}" id="cancel">Cancel</a>
+    </div>
+    {% endif %}
+{% endblock content %}
+
+{% block script %}
+{% endblock script %}

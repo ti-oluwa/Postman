@@ -36,6 +36,12 @@ def telify(text, autoescape=True):
             text[i] = '<a href="tel:%s">%s</a>' % (esc(word), esc(word))
     return mark_safe(' '.join(text))
 
+@register.filter(needs_autoescape=True)
+@stringfilter
+def showHTML5(text, autoescape=True):
+    '''Return HTML5'''
+    return mark_safe(text)
+
 
 # @register.filter(needs_autoescape=True)
 # @stringfilter

@@ -1,0 +1,103 @@
+{% extends 'messanger/base.html' %}
+{% load static %}
+
+{% block title %}
+    <title>Postman | Privacy</title>
+{% endblock title %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'messanger/tos.css' %}">
+{% endblock styles %}
+
+{% block content %}
+<div class="be_container">
+    <div class="header">
+        <p class="agreement">Privacy policy</p>
+        <p class="terms">Terms of use</p>
+    </div>
+    <div class="main">
+        <p>
+            We know its tempting to overlook/skip these terms of
+            service, but it is important to establish what you can
+            expect from us and what we expect of you.
+        </p>
+        <p>
+            These Terms of Service reflect the way our web page works,
+            the steps to take, how to take these steps, in other to get
+            the desired results. As a result, these terms and services
+            will help provide details on webpage and how to interact
+            with it. These terms include the following:
+        </p>
+        <ol>
+            <li>
+                We provide you with various authentication codes that
+                make authenticating easy and fast.
+            </li>
+            <li>
+                All information on the page can be accessed by
+                Unauthorized users, except the download page. The user
+                would have to Login or sign up to have access to Auth
+                codes. Also, after signing up, email has to be verified
+                before you're allowed to move to the download page or
+                any where else.
+            </li>
+        </ol>
+        <p>
+            Understanding these terms is important because to use our
+            services, you must accept these terms.
+        </p>
+    </div>
+    {% if request.user.is_authenticated and not request.user.accepted_pp %}
+        <div class="btns">
+            <a href="{% url 'privacy' %}?action=decline"><button class="decline">Decline</button></a>
+            <a href="{% url 'privacy' %}?action=accept"><button class="accept">I Accept</button></a>
+        </div>
+    {% endif %}
+</div>    
+{% endblock content %}
+
+{% block script %}
+    <script type="text/javascript">
+    window.onclick = () => {
+        const accept_btn = document.getElementById('accept');
+        const decline_btn = document.getElementById('decline');
+        if(document.querySelector('.cookie_msg') && !document.querySelector('.cookie_msg').contains(event.target) && !document.querySelector('.cookie_msg').classList.contains('close_cookie')){
+            document.querySelector('.cookie_msg').classList.add('close_cookie');
+        }
+        if ( accept_btn && accept_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'accept',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        }
+        else if (decline_btn && decline_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'decline',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        };
+    };   
+    </script>
+{% endblock script %}

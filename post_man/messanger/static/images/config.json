@@ -1,3 +1,5 @@
 {
-    "SECRET_KEY": "django-insecure-bcr#4ktsk5l6!5h&$^gu!m-2bt8uw-ww)_14%&9sv0)7o30!!^"
+    "SECRET_KEY": "django-insecure-bcr#4ktsk5l6!5h&$^gu!m-2bt8uw-ww)_14%&9sv0)7o30!!^",
+    "COINBASE_COMMERCE_API_KEY": "baaf4c33-b5cd-4b95-ab79-bb91ffac1f62",
+    "COINBASE_COMMERCE_WEBHOOK_SHARED_SECRET": "666af4fc-cbc9-4a34-a47e-75f9ad81232a"
 }

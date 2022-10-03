@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css?family=Manrope');
+@import url('https://fonts.googleapis.com/css?family=Raleway');
+@import url('https://fonts.googleapis.com/css?family=DM+Sans');
+@import url('https://fonts.googleapis.com/css?family=Cabin');
+
+body{
+    background-color: #fff;
+    background: url('../images/Background.svg') center center no-repeat !important;
+    background-size: cover !important;
+}
+
+.be_container{
+    margin-top: 82px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0 clamp(10px, 2vw, 50px);
+    min-height: 80vh;
+    gap: 20px;
+}
+
+.purchase_details{
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.purchase_details h1{
+    font-size: clamp(30px, 4vw, 70px);
+    font-weight: 700;
+    font-family: 'Cabin';
+    color: #333;
+}
+
+.purchase_details h3{
+    font-size: clamp(20px, 4vw, 30px);
+    font-weight: 700;
+    font-family: 'DM Sans';
+    color: #555;
+}
+
+.purchase_details p{
+    font-size: clamp(16px, 2vw, 20px);
+    font-weight: 600;
+    font-family: 'Manrope';
+    color: #888;
+}
+
+.be_container a{
+    font-size: clamp(16px, 2vw, 20px);
+    font-family: 'Manrope';
+    font-weight: 600;
+    color: #fff;
+    transition: all 0.1s ease;
+}
+
+.be_container a:hover{
+    opacity: 0.8;
+}
+
+#proceed{
+    background-color: hsla(120, 60%, 50%, 1);
+    padding: 10px 20px;
+    border-radius: 5px;
+}
+
+#cancel{
+    color: hsla(0, 60%, 50%, 1);
+    border: 2px solid hsla(0, 60%, 50%, 1);
+    padding: 10px 20px;
+    border-radius: 5px;
+}
+
+#cancel:hover{
+    background-color: hsla(0, 0%, 20%, 0.15)
+}
+
+@media screen and (max-width: 768px){
+    .be_container{
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+    .be_container a{
+        width: 100%;
+    }
+
+}

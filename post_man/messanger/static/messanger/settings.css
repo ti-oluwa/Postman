@@ -81,19 +81,51 @@ input[type=checkbox]{
     padding: 20px 10px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 20px;
+    justify-content: space-between;
     background-color: #f2f2f2;
     box-shadow: 0 0 0 100vmax #f2f2f2;
     clip-path: inset(0 -100vmax);
 }
 
-.settings_head h1{
+.settings_head div{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings_head div h1{
     font-size: clamp(20px, 5vw, 30px);
     font-weight: 700;
     color: #333;
 }
 
-.settings_head img{
+.settings_head button{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 10px clamp(10px, 2vw, 20px);
+    background-color: #fff;
+    border: 2px solid hsla(120, 61%, 60%, 0.8);
+    border-radius: 4px;
+    transition: 0.1s ease-in;
+}
+
+.settings_head button p{
+    font-family: 'Manrope';
+    font-weight: 600;
+    font-size: clamp(14px, 2vw, 16px);
+    color: #333;
+}
+
+.settings_head button>img{
+    width: clamp(15px, 4vw, 20px);
+    height: clamp(15px, 4vw, 20px);
+    filter: contrast(70%);
+}
+
+.settings_head div>img{
     width: clamp(20px, 5vw, 30px);
     height: clamp(20px, 5vw, 30px);
     filter: contrast(0.7);
@@ -156,6 +188,26 @@ input[type=checkbox]{
     gap: clamp(5px, 2vw, 10px);
 }
 
+.user_details div:first-of-type{
+    align-items: flex-start;
+}
+
+.low{
+    color: rgb(255, 217, 0) !important;
+}
+
+.verylow{
+    color: coral !important;
+}
+
+.okay{
+    color:steelblue !important;
+}
+
+.elite{
+    color: hsla(120, 71%, 60%, 1) !important;
+}
+
 .user_details p{
     font-size: clamp(14px, 2vw, 18px);
     font-weight: 600;
@@ -175,6 +227,201 @@ input[type=checkbox]{
 .user_details .inactive{
     color: hsla(0, 71%, 60%, 1);
 }
+
+/* purchase popup */
+.purchase_popup{
+    z-index: 1000;
+    isolation: isolate;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: none;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 30px;
+    width: min(500px, 90%);
+    background-color: #fff;
+    border: 2px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 0 10px 100vmax rgba(0, 0, 0, 0.5);
+    padding: clamp(25px, 2vw, 40px) 20px;
+    max-height: max(600px, 83%);
+    animation: show_purchase_popup 0.2s ease-in-out;
+}
+
+@keyframes show_purchase_popup {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -30%) scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+    
+
+.purchase_popup .heading{
+    font-size: clamp(20px, 5vw, 30px);
+    font-weight: 700;
+    color: #333;
+    
+}
+
+.list{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 100px;
+    padding: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.list_item{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+    /* background-color: #f2f2f2; */
+    padding: 10px;
+    border-radius: 8px;
+    border: 2px solid bisque;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.15);
+    animation: show_list_item 0.2s ease-in-out;
+    animation-fill-mode: forwards;
+    opacity: 0;
+}
+
+@keyframes show_list_item {
+    from {
+        opacity: 0;
+        filter: blur(10px);
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        filter: blur(0);
+        transform: translateY(0);
+    }
+}
+
+
+.list_item .details{
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 5px;
+}
+
+.details p:first-of-type{
+    font-family: 'Manrope';
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: 700;
+    color: #333;
+}
+
+.details p:last-of-type{
+    font-size: clamp(14px, 2vw, 18px);
+    font-weight: 600;
+    color: #888;
+}
+
+.list_item .count{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 100%;
+}
+
+.count button{
+    font-size: clamp(14px, 2vw, 18px);
+    font-weight: 700;
+    color: #fff;
+    width: 100%;
+    height: 30%;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background-color: #fff;
+}
+
+.count button:hover{
+    opacity: 0.9;
+}
+
+.count .plus{
+    background-color: powderblue;
+}
+
+.count .minus{
+    background-color: coral;
+}
+
+.count p{
+    font-size: clamp(14px, 2vw, 18px);
+    font-weight: 700;
+    color: #333;
+    padding: 5px;
+}
+
+.purchase_popup .summary{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 5px 10px;
+}
+
+.summary h5{
+    font-size: clamp(12px, 2vw, 16px);
+    font-weight: 700;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.summary h5 span{
+    font-size: clamp(12px, 2vw, 16px);
+    font-weight: 700;
+    color: #333;
+    font-family: 'Manrope';
+}
+
+.summary a{
+    font-size: clamp(12px, 2vw, 16px);
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    width: 95%;
+    border-radius: 4px;
+    height: 40px;
+    align-self: center;
+    background-color: hsla(120, 61%, 70%, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+    transition: 0.15s ease;
+}
+
+.summary a:hover{
+    background-color: hsla(120, 60%, 61%, 0.8);
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.15);
+}
+
 
 .profiles{
     width: 100%;
@@ -250,6 +497,15 @@ input[type=checkbox]{
     color: #888;
     line-break: anywhere;
     hyphens: auto;
+}
+
+.profile div .profile_type{
+    font-size: clamp(8px, 2vw, 12px);
+    font-weight: 600;
+    color:steelblue;
+    line-break: anywhere;
+    hyphens: auto;
+    font-family: 'Manrope';
 }
 
 .profile div a{
@@ -336,6 +592,7 @@ input[type=checkbox]{
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
+    transition: 0.2s ease-out !important;
     animation: show_form 0.1s ease-out ;
     animation-fill-mode: forwards;
 }
@@ -356,8 +613,6 @@ input[type=checkbox]{
     display: flex !important;
 }
 
-
-
 .add_form .field{
     width: 100%;
     display: flex;
@@ -366,6 +621,7 @@ input[type=checkbox]{
     gap: 10px 0;
     margin-bottom: 20px;
 }
+
 
 .field label{
     font-size: clamp(16px, 2vw, 20px);
@@ -387,10 +643,46 @@ input[type=checkbox]{
     color: #333;
 }
 
+.field select{
+    flex: auto;
+    width: 100%;
+    outline: none !important;
+    border-radius: 4px;
+    border: 2px solid #eee;
+    background-color: hsla(120, 41%, 90%, 0.8);
+    padding: 10px 10px;
+    font-size: clamp(14px, 2vw, 18px);
+    font-family: 'Manrope';
+    font-weight: 700;
+    color: #555;
+    cursor: pointer;
+}
+
+.field select option{
+    font-size: clamp(14px, 2vw, 16px);
+    font-family: 'Manrope';
+    font-weight: 700;
+    color: #333;
+    background-color: #fff;
+    padding: 5px 10px;
+}
+
 .field input:focus-within{
     border: 1px hsla(120, 61%, 70%, 0.8) solid;
     background-color: #fff;
     margin: -1px !important;
+}
+
+#email_add_form small{
+    font-size: clamp(10px, 2vw, 12px);
+    font-weight: 600;
+    color: hsla(0, 61%, 60%, 1);
+    margin: 5px 0;
+    cursor: pointer;
+}
+
+#email_add_form small:hover{
+    color: hsla(0, 61%, 80%, 1);
 }
 
 .add_form button{
@@ -413,16 +705,123 @@ input[type=checkbox]{
     font-weight: clamp(600, 5, 700);
     font-size: clamp(14px, 2vw, 16px);
     color: hsla(0, 71%, 60%, 1);
+    cursor: pointer;
 }
+
+/* Confirm message popup */
+
+.confirm_del_popup{
+    position:fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    height: auto;
+    min-height: 200px;
+    background-color: #fff;
+    background-image: linear-gradient(315deg, #fff 0%, #e1e1e1 74%);
+    background-image: -webkit-linear-gradient(315deg, #fff 0%, #e1e1e1 74%);
+    background-image: -o-linear-gradient(315deg, #fff 0%, #e1e1e1 74%);
+    background-image: -moz-linear-gradient(315deg, #fff 0%, #e1e1e1 74%);
+    border: 2px solid #ccc;
+    box-shadow: 0 0 10px 100vh rgba(0, 0, 0, 0.5), 0 0 10px 5px rgba(0, 0, 0, 0.25);
+    border-radius: 10px;
+    z-index: 10000;
+    opacity: 0;
+    display: none;
+    visibility: hidden;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    padding-top: 40px;
+}
+
+.show_confirm_del_popup{
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    animation: show_confirm_del_popup 0.15s ease-in;
+    animation-fill-mode: forwards;
+}
+
+@keyframes show_confirm_del_popup{
+    0%{
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+    }
+    100%{
+        transform: translateX(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+.image{
+    width: 100px;
+    height: 100px;
+    margin-bottom: 20px;
+}
+
+.confirm_del_popup p{
+    font-size: clamp(14px, 2vw, 20px);
+    font-family: 'Raleway';
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.confirm_del_popup .btns{
+    display: flex;
+    gap: 0 20px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.confirm_del_popup :is(.yes, .no){
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    border: 1px solid #f6f6f6;
+    background-color: #fff;
+    transition: 0.1s ease-in;
+    cursor: pointer !important;
+}
+
+.confirm_del_popup .no{
+    padding: 5px 20px;
+}
+
+.confirm_del_popup .yes a{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 20px;
+}
+
+.confirm_del_popup :is(.yes, .no) img{
+    width: 20px;
+    height: 20px;
+}
+
+
 
 @media (hover: none){
     .add_form button{
         background-color: hsla(120, 60%, 61%, 0.8);
         color: #fff;
     }
+    .confirm_del_popup .yes{
+        background-color: hsla(120, 61%, 70%, 0.8);
+    }
+    .confirm_del_popup .no{
+        background-color: hsla(0, 61%, 70%, 0.8);
+    }
 }
 @media (hover: hover){
-    .settings_head img:hover{
+    .settings_head div img:hover{
         filter: contrast(0.7) brightness(1.2);
         transform: scale(1.05) rotate(0deg);
         cursor: pointer;
@@ -436,6 +835,18 @@ input[type=checkbox]{
         to{
             transform: scale(1.05) rotate(360deg);
         }
+    }
+
+    
+    .settings_head button:hover{
+        background-color: hsla(120, 61%, 60%, 0.8);
+    }
+    
+    .settings_head button:hover  p{
+        color: #fff;
+    }
+    .settings_head button:hover img{
+        filter: contrast(0%) brightness(200%);
     }
         
     .profile div a:hover{
@@ -458,12 +869,27 @@ input[type=checkbox]{
         color: hsla(0, 60%, 60%, 1);
         text-decoration: underline;
     }
+
+    .confirm_del_popup :is(.yes, .no):hover{
+        transform: scale(1.05);
+        box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.15);
+    }
+    .confirm_del_popup .yes:hover{
+        background-color: hsla(120, 61%, 70%, 0.8);
+    }
+    .confirm_del_popup .no:hover{
+        background-color: hsla(0, 61%, 70%, 0.8);
+    }
 }
 
 @media screen and (max-width: 480px){
     .toggle_container{
         width: 30px;
         height: 20px;
+    }
+
+    .confirm_del_popup{
+        width: auto;
     }
 }
     

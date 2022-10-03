@@ -1,0 +1,171 @@
+@import url("https://fonts.googleapis.com/css?family=DM+Sans");
+@import url("https://fonts.googleapis.com/css?family=Manrope");
+
+
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    background-color: #fff;
+    text-align: justify !important;
+    
+}
+.container {
+    margin: 0 auto;
+    width: 90%;
+}
+
+.be_container{
+    margin-top: 120px;
+    width: 100%;
+    margin-bottom: 50px;
+}
+
+p {
+    margin-bottom: 20px;
+    color: #333;
+    font-family: 'Manrope';
+
+}
+p:last-child {
+    margin-top: 20px;
+}
+
+.header{
+}
+.container .agreement {
+    font-family: "Manrope";
+    font-style: normal;
+    font-weight: 700;
+    font-size: 20px;
+    color: #2f2f2f;
+    margin-bottom: 15px;
+}
+.container .terms {
+    font-family: "DM Sans";
+    font-style: normal;
+    font-weight: 700;
+    font-size: 36px;
+    color: #333;
+    margin-bottom: 15px;
+    line-height: 40px;
+}
+.main {
+    font-family: "Manrope";
+    font-style: normal;
+    font-weight: 400;
+    font-size: 18px;
+    color: #555;
+    line-height: 1.5;
+}
+.decline {
+    font-family: "Manrope";
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    width: 166px;
+    height: 56px;
+    border: 1px solid coral;
+    border-radius: 4px;
+    padding: 10px clamp(10px, 2vw, 20px);
+    transition: all ease-out 50ms;
+    color: coral;
+    background-color: #ffffff;
+}
+
+
+ol li {
+    list-style-position: inside;
+    color: #555;
+}
+.accept {
+    font-family: "Manrope";
+    font-style: normal;
+    font-weight: 400;
+    font-size: 20px;
+    padding: 10px clamp(10px, 2vw, 20px);
+    width: 166px;
+    height: 56px;
+    border: none;
+    background: hsla(120, 61%, 70%, 0.8);
+    border-radius: 4px;
+    transition: all ease-out 50ms;
+    color: #fff;
+}
+
+.btns {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0px;
+    gap: 24px;
+}
+
+
+.decline:active,
+.accept:active {
+    transform: scale(0.985);
+}
+
+@media (hover: hover){
+    .decline:hover{
+        background-color: rgba(255, 146, 67, 0.85);
+        border: none;
+        box-shadow: 0px 2px 10px rgba(31, 31, 31, 0.1);
+        color: #fff ;
+    }
+    
+    .accept:hover {
+        background-color: hsla(120, 61%, 60%, 0.8);
+        border: none;
+        box-shadow: 0px 2px 10px rgba(31, 31, 31, 0.1);
+        color: #fff ;
+    }
+    
+}
+
+@media screen and (max-width: 600px) {
+
+    .btns {
+        text-align: center;
+        justify-content: center;
+    }
+
+}
+    
+
+@media screen and (max-width: 428px) {
+    .container .agreement {
+        font-size: 16px;
+    }
+    .container .terms {
+        font-size: 28px;
+    }
+    .main {
+        font-size: 12px;
+    }
+   
+    .decline {
+        gap: 10px;
+        width: 93px;
+        height: 44px;
+        font-size: 12px;
+    }
+    .accept {
+        gap: 10px;
+        width: 93px;
+        height: 44px;
+        font-size: 12px;
+    }
+
+}
+
+@media screen and (max-width: 375px) {
+    .container .terms {
+        font-size: 36px;
+    }
+
+}

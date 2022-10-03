@@ -66,7 +66,7 @@
                                     {% elif email.sent_to.all|length  > 1 and email.sent_to.all|length < email.sent_by.added_email_addresses.all|length %}
                                         <h3>Sent to {{ email.sent_to.all | length }} address{{ email.sent_to.all | length | pluralize:"s,es" }}</h3>
                                     {% elif email.sent_to.all|length == email.sent_by.added_email_addresses.all|length %}
-                                        <h3>Sent to all contacts</h3>
+                                        <h3>Sent to all addresses</h3>
                                     {%  endif %}
                                     <p>{{ email.date_sent| date:'M d y' }}</p>
                                 </div>
@@ -84,7 +84,11 @@
                                         <span>Cc: {{ email.cc }}</span>
                                     {% endif %}
                                 </div>
-                                <p>{{ email.body | linebreaks | urlize | telify }}</p>
+                                {% if not email.is_html %}
+                                    <p>{{ email.body | linebreaks | urlize | telify }}</p>
+                                {% else %}
+                                    <p>{{ email.body }}</p>
+                                {% endif %}
                                 {% if email.attachments.all|length > 0 %}
                                     <div class="attachments">
                                         <h4>Attachments</h4>
@@ -214,9 +218,17 @@
                 </label>
                 <input type="file" name="file" id="attached_file" multiple>
             </div>
+            <p class="help_text" style="display: none;"></p>
             <div class="email_field">
-                <textarea id="message" placeholder="Compose email" required maxlength="4500"></textarea>
+                <textarea id="message" placeholder="Compose mail" required minlength="10" maxlength="4500" title="Compose mail"></textarea>
                 <img id="send_btn" src="{% static 'images/send2.svg' %}" alt="send">
+            </div>
+            <div class="email_field attach">
+                <label for="attached_html_file">
+                    <span>Attach HTML message instead</span>
+                    <img src="{% static 'images/attached-file.svg' %}" alt="" style="width: 15px; height: 15px;">
+                </label>
+                <input type="file" name="file" id="attached_html_file" accept=".html">
             </div>
         </form>
 
@@ -319,6 +331,7 @@
     // shows and hides header and create button on scroll
     var oldScrollPosition = 0;
     window.onscroll = (e) => {
+
         var scrollPosition = document.documentElement.scrollTop;
         if (scrollPosition >= window.innerHeight * 0.2) {
             document.querySelector('header').classList.add('hide');
@@ -374,8 +387,9 @@
                         button.style.pointerEvents = "none";
                     };
                 });
-            }, 500)
+            }, 200)
         }
+
 
         // opens notifications shade
         // opens notifications shade
@@ -389,8 +403,27 @@
             })
         }
 
-        var messages = document.querySelectorAll('.message');
+        const messages = document.querySelectorAll('.message');
         var contacts = document.querySelectorAll('.contact');
+        var show_delay = 0.2;
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting){
+                    entry.target.classList.add('show_messages');
+                }
+            })
+        });
+        messages.forEach((message) => {
+            observer.observe(message);
+            message.style.animationDelay = `${show_delay}s`;
+            show_delay += 0.1;
+        });
+
+        setTimeout(() => {
+            messages.forEach((message) => {
+                message.style.animationDelay = '0.2s';
+            });
+        }, 1000);
 
         if (messages.length != 0) {
             // messages[0].scrollIntoView();
@@ -851,17 +884,87 @@
             else{
                 document.querySelector('.attach').querySelector('label').querySelector('span').innerText = 'Attach file'
             }
-        })
+
+            if (document.querySelector('#attached_html_file').files.length > 0){
+                document.querySelectorAll('.attach')[1].querySelector('label').querySelector('span').innerText = document.querySelector('#attached_html_file').files[0].name;
+                document.querySelector('#message').disabled = true;
+            }
+            else{
+                document.querySelectorAll('.attach')[1].querySelector('label').querySelector('span').innerText = 'Attach HTML message instead';
+                document.querySelector('#message').disabled = false;
+            }
+        });
+
+
+        var message_field = document.querySelector('#message');
+
+        function send(){
+            // checks if the message is valid
+            payload = new FormData();
+            payload.append('message', message_field.value)
+            $.ajax({
+                url: '{% url "validate-message" %}',
+                method: 'POST',
+                cache: false,
+                dataType: 'json',
+                contentType: false,
+                processData: false,
+                data: payload,
+                headers:{
+                    'X-CSRFToken': getCookie("csrftoken"),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function (response){
+                    if(response['message'] == "success"){
+                        message_field.style.borderColor = '';
+                        document.querySelector('.help_text').style.display = 'none';
+                        document.querySelector('#message').title = 'Compose mail';
+                        document.querySelector('.help_text').innerText = '';
+                    }
+                    else if(response['message'] == "error"){
+                        document.querySelector('.help_text').style.display = 'block';
+                        document.querySelector('#message').title = 'Mail should not contain the words above';
+                        document.querySelector('.help_text').innerText = 'Blacklisted words found!: ' + response['bad_words'];
+                        message_field.style.borderColor = 'hsla(0, 61%, 70%, 0.8)';
+                    }
+                },
+            });
+        };
+
+        
+        var sendAfter = 200;
+        message_field.addEventListener('keyup', (e) => {
+            e.stopImmediatePropagation()
+            clearTimeout(timeout);
+            var timeout = setTimeout(send, sendAfter);  
+        });
 
         document.querySelector('#send_btn').addEventListener('click', (e) => {
             var message = document.querySelector('#message').value;
-            if (message != '' && message.length >= 10 && message.length <= 4500){
-                document.querySelector('.confirm_send_popup').classList.add('show_confirm_send_popup');
-                document.querySelector('body').classList.add('stop_scroll');
+            if (message != '' &&  message.length >= 10 && message.length <= 4500 || document.querySelector('#attached_html_file').files.length > 0 ){
+                if(document.querySelector('.help_text').innerHTML != ''){
+                    document.querySelector('#message_form').querySelector('label').innerText = 'Remove blacklisted words';
+                    document.querySelector('#message_form').querySelector('label').style.color = 'hsla(0, 61%, 70%, 0.8)';
+                    setTimeout(() => {
+                        document.querySelector('#message_form').querySelector('label').innerText = 'Compose mail';
+                        document.querySelector('#message_form').querySelector('label').style.color = '';
+                        document.querySelector('#message').title = 'Compose mail';
+                    }, 3000);
+                    document.querySelector('#message').title = 'Mail should not contain the words above';
+                }else{
+                    document.querySelector('.confirm_send_popup').classList.add('show_confirm_send_popup');
+                    document.querySelector('body').classList.add('stop_scroll');
+                };
             }
             else{
-                document.querySelector('#message').value = '';
-                document.querySelector('#message').placeholder = 'Message must be between 10 and 4500 characters';
+                document.querySelector('#message_form').querySelector('label').innerText = 'Mail must be between 10 and 4500 characters long';
+                document.querySelector('#message_form').querySelector('label').style.color = 'hsla(0, 61%, 70%, 0.8)';
+                setTimeout(() => {
+                    document.querySelector('#message_form').querySelector('label').innerText = 'Compose mail';
+                    document.querySelector('#message_form').querySelector('label').style.color = '';
+                    document.querySelector('#message').title = 'Compose mail';
+                }, 3000);
+                document.querySelector('#message').title = 'Mail must be between 10 and 4500 characters long';
                 document.querySelector('#message').style.borderColor = 'hsla(0, 61%, 70%, 0.8)';
                 document.querySelector('#message').addEventListener('input', () => {
                     document.querySelector('#message').placeholder = 'Enter message';
@@ -908,8 +1011,10 @@
 
             var file = document.querySelector('#address_file').files[0];
             var attached_files = document.querySelector('#attached_file').files;
+            var attached_html_file = document.querySelector('#attached_html_file').files[0];
             var formData = new FormData();
             formData.append('file', file);
+            formData.append('attached_html_file', attached_html_file);
             for(var i = 0; i < attached_files.length; i++){
                 formData.append('attached_file-'+i, attached_files[i]);
             };
@@ -950,9 +1055,49 @@
             document.querySelector('.confirm_send_popup').classList.remove('show_confirm_send_popup');
             document.querySelector('body').classList.remove('stop_scroll');
         });
- 
-    };
 
+        const accept_btn = document.getElementById('accept');
+        const decline_btn = document.getElementById('decline');
+        if(document.querySelector('.cookie_msg') && !document.querySelector('.cookie_msg').contains(event.target) && !document.querySelector('.cookie_msg').classList.contains('close_cookie')){
+            document.querySelector('.cookie_msg').classList.add('close_cookie');
+        }
+        if (accept_btn && accept_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'accept',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        }
+        else if (decline_btn && decline_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'decline',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        };
+
+    };
+ 
 </script>
 {% endblock script %}
 </html>

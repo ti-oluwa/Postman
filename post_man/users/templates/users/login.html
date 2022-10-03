@@ -1,0 +1,93 @@
+{% extends 'messanger/base.html' %}
+{% load static %}
+
+{% block title %}
+    <title>Postman | Sign in</title>
+{% endblock title %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'messanger/login.css' %}">
+{% endblock styles %}
+
+
+{% block content %}
+    <div id="login">
+        <h1>Login</h1>
+        <form action="{% url 'login' %}" method="post">
+            {% csrf_token %}
+            <div class="form_field">
+                <label for="user_id">Username</label>
+                <input type="text" title="Enter your username here" name="username" id="user_id" placeholder="Username" required autofocus=True autocomplete="username">
+                <p class="help_text">Your username is case-sensitive</p>
+            </div>
+            
+            <div class="form_field">
+                <label for="password">Password</label>
+                <input type="password" title="Enter your account password" minlength="6" name="password" id="password" placeholder="Password" required autocomplete="current-password">
+                <p class="help_text">Enter your correct password</p>
+            </div>
+            <button type="submit" id="login_btn" >Login</button>
+        </form>
+        <div class="links">
+            <a href="{% url 'register' %}">Create an account</a>
+            <a href="{% url 'forgot-password' %}">Forgot password?</a>
+        </div>
+    </div>
+
+    {% if messages %}
+        <!-- notifications -->
+        <div class="notification_icon">
+            <img src="{% static 'images/bell-ring.svg' %}" alt="">
+            {% if messages %}
+                <span>{{ messages|length }}</span>
+            {% endif %}
+        </div>
+        <div class="notifications">
+            <img id="sub_icon" src="{% static 'images/bell.svg' %}" alt="" style="width: 30px; height: 30px;">
+            {% for message in messages %}
+                {% if 'info' in message.tags %}
+                    <div class="toast info">
+                        <img src="{% static 'images/info2.svg' %}" alt="" style="width: 20px; height: 20px;">
+                        <p>{{ message }}</p>
+                    </div>
+                {% elif  'success' in message.tags %}
+                    <div class="toast success">
+                        <img src="{% static 'images/tick.svg' %}" alt="" style="width: 20px; height: 20px;">
+                        <p>{{ message }}</p>
+                    </div>
+                {% elif  'error' in message.tags %}
+                    <div class="toast error">
+                        <img src="{% static 'images/cancel.svg' %}" alt="" style="width: 20px; height: 20px;">
+                        <p>{{ message }}</p>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+{% endblock content %}
+
+{% block script %}
+<script type="text/javascript">
+    window.onload = () => {
+        // opens notifications shade
+        if (document.querySelector('.notifications')){
+            document.querySelector('.notification_icon').querySelector('img').classList.add('blink_img');
+            document.querySelector('.notification_icon').classList.add('blink_icon');
+            document.querySelector('.notification_icon').addEventListener('click', () => {
+                document.querySelector('.notification_icon').querySelector('img').classList.remove('blink_img');
+                document.querySelector('.notification_icon').classList.remove('blink_icon');
+                document.querySelector('.notifications').classList.toggle('open_shade');
+            })
+        }
+    }
+
+    window.onclick = function(event) {
+
+        // close notification shade on outside click
+        if(document.querySelector('.notifications') && !document.querySelector('.notification_icon').contains(event.target) && !document.querySelector('.notifications').contains(event.target) && document.querySelector('.notifications').classList.contains('open_shade')){
+            document.querySelector('.notifications').classList.remove('open_shade')
+        }
+    }
+</script>
+{% endblock script %}
