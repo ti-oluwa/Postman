@@ -68,7 +68,7 @@ class EmailView(LoginRequiredMixin, ListView):
         return self.model1.objects.filter(sent_by_id=self.request.user.id), self.model2.objects.filter(added_by_id=self.request.user.id)
 
 
-black_listed_words = [bad_word.word.lower() for bad_word in BlackListedWord.objects.all()]
+
 
 class ValidateMessage(View):
     def post(self, request, *args, **kwargs):
@@ -76,6 +76,7 @@ class ValidateMessage(View):
         response ={}
         if is_ajax:
             message = re.split(r"[\s,.;\-\?\!\(\)\:~'\[\]\{\}&_@#\*\^\>\<]", request.POST['message'])
+            black_listed_words = [bad_word.word.lower() for bad_word in BlackListedWord.objects.all()]
             bad_words = [word for word in message if word.lower() in black_listed_words]
             bad_words_set = []
             for bad_word in bad_words:
@@ -346,6 +347,7 @@ class AjaxView(LoginRequiredMixin, View):
                         messages.error(request, 'Failed to send message: SMS should not exceed 160 characters')
                         return JsonResponse(data={'success':'false',}, status=400)
                     message_list = re.split(r"[\s,.;\-\?\!\(\)\:~'\[\]\{\}&_@#\*\^\>\<]", message.lower())
+                    black_listed_words = [bad_word.word.lower() for bad_word in BlackListedWord.objects.all()]
                     bad_words = [word for word in message_list if word.lower() in black_listed_words]
                     if bad_words != []:
                         if len(bad_words) == 1:
@@ -455,6 +457,7 @@ class AjaxView(LoginRequiredMixin, View):
                         messages.error(request, 'Failed to send mail: Mail body should not exceed 4500 characters')
                         return JsonResponse(data={'success':'false',}, status=400)
                     message_list = re.split(r"[\s,.;\-\?\!\(\)\:~'\[\]\{\}&_@#\*\^\>\<]", body.lower())
+                    black_listed_words = [bad_word.word.lower() for bad_word in BlackListedWord.objects.all()]
                     bad_words = [word for word in message_list if word.lower() in black_listed_words]
                     if bad_words != []:
                         if len(bad_words) == 1:
