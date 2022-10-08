@@ -48,7 +48,7 @@
                     <div class="summary">
                         <h5>Credit units: <span id="total_amount">0</span></h5>
                         <h5>Price: <span id="total_price">$0.00</span></h5>
-                        <a id="purchase_btn">Purchase</a>
+                        <a id="purchase_btn" style="pointer-events: none;">Purchase</a>
                     </div>
                 </div>
             {% endif %}
@@ -144,10 +144,14 @@
                     <label for="password">App password</label>
                     <input type="password" name="app_pass" id="password" required>
                 </div>
-                <small>Want to use a custom server address?</small>
+                <small>Want to use a custom server address or port?</small>
                 <div class="field" id="server_div" style="display:none;">
                     <label for="custom_server">Custom host address</label>
-                    <input type="text" name="custom_host" id="custom_server" title="Enter your preferred host address" placeholder="e.g, smtp.live.com">
+                    <input type="text" name="custom_host" id="custom_server" title="Enter your preferred host address or leave empty" placeholder="e.g, smtp.live.com">
+                </div>
+                <div class="field" id="port_div" style="display:none;">
+                    <label for="custom_port">Custom port</label>
+                    <input type="text" name="custom_port" id="custom_port" title="Enter your preferred port or leave empty" placeholder="e.g, 587" pattern="\d">
                 </div>
                 <button type="submit">Add</button>
             </form>
@@ -265,6 +269,22 @@
             </div>
             <div class="border_sec"></div>
 
+            <!-- PURCHASE HISTORY -->
+            <div class="del_all">
+                {% if user.purchases.all|length_is:'0' %}
+                    <a href="" style="opacity: 0.7; pointer-events: none; color: #555;">View purchase history</a>
+                {% else %}
+                    <a href="{% url 'purchase-history' user.id %}" style="color: #555;">View purchase history</a>
+                {% endif %}
+            </div>
+
+            {% if user.is_admin %}
+                <!-- ADD DEFAULT  -->
+                <div class="del_all">
+                    <a href="{% url 'add-default-items' %}" style="color: #555;">Add default prices and blacklisted words</a>
+                </div>
+            {% endif %}
+
             <!-- DELETE ALL CONTACTS -->
             <div class="del_all">
                 {% if user.added_phone_numbers.all|length_is:'0' and user.added_email_addresses.all|length_is:'0' %}
@@ -273,13 +293,6 @@
                     <a href="{% url 'delete-contacts' %}">Clear email and contact list</a>
                 {% endif %}
             </div>
-
-            {% if user.is_admin %}
-                <!-- ADD DEFAULT  -->
-                <div class="del_all">
-                    <a href="{% url 'add-default-items' %}">Add default prices and blacklisted words</a>
-                </div>
-            {% endif %}
             
             <!-- DELETE USER ACCOUNT -->
             <div class="del_all">
@@ -363,6 +376,7 @@
             }, 500);
             var custom_server_link = document.querySelector('#email_add_form').querySelector('small');
             document.querySelector('#server_div').style.display = 'none';
+            document.querySelector('#port_div').style.display = 'none';
             custom_server_link.style.display = '';
         };
 
@@ -381,7 +395,7 @@
         };
 
         var select = document.querySelector('#provider');
-        if (select.contains(event.target)){
+        select.addEventListener('change', function(){
             var value = select.value;
             if (select.value == 'twilio'){
                 document.querySelector('#sid_div').style.display = "block";
@@ -394,11 +408,12 @@
                 document.querySelector('label[for=api_key]').innerText = 'Api key';
                 document.querySelector('#account_sid').required = false;
             };
-        };
+        });
 
         var custom_server_link = document.querySelector('#email_add_form').querySelector('small');
         if (custom_server_link.contains(event.target)){
             document.querySelector('#server_div').style.display = '';
+            document.querySelector('#port_div').style.display = '';
             custom_server_link.style.display = 'none';
         };
 
@@ -523,11 +538,20 @@
 
                         var payload = {};
                         var form_data = {};
+                        var total_amount = 0;
                         list_items.forEach((item)=>{
                             var key = item.querySelector('.credit').innerText;
                             var val = item.querySelector('.count').querySelector('p').innerText
                             payload[key.replace(' credits', '')]= val;
+                            total_amount += parseInt(key.replace(' credits', '')) * parseInt(val)
+
                         });
+                        
+                        if (total_amount <= 0){
+                            purchase_btn.style.pointerEvents = 'none';
+                        }else{
+                            purchase_btn.style.pointerEvents = 'auto';
+                        }
                         var action = 'process_data';
                         form_data['payload'] = JSON.stringify(payload);
                         form_data['action'] = action;
@@ -544,7 +568,7 @@
                                 success: function(response){
                                     if (response['status'] == 'success' && response['price']){
                                         document.querySelector('.purchase_popup').querySelector('.summary').querySelector('#total_price').innerText = '$'+response['price'];
-                                        document.querySelector('.purchase_popup').querySelector('.summary').querySelector('#total_amount').innerText = '$'+response['amount'];
+                                        document.querySelector('.purchase_popup').querySelector('.summary').querySelector('#total_amount').innerText = response['amount'];
                                     }else if (response['status'] == 'error'){
                                         window.location.reload()
                                     }else if (response['status'] == 'success'){
@@ -562,11 +586,13 @@
                 purchase_btn.style.pointerEvents = 'none';
                 var payload = {};
                 var form_data = {};
+
                 list_items.forEach((item)=>{
                     var key = item.querySelector('.credit').innerText;
                     var val = item.querySelector('.count').querySelector('p').innerText
                     payload[key.replace(' credits', '')]= val;
                 });
+                
                 var action = 'purchase';
                 form_data['payload'] = JSON.stringify(payload);
                 form_data['action'] = action;
@@ -609,6 +635,7 @@
                 document.querySelector('.notifications').classList.toggle('open_shade');
             })
         };
+
 
         document.querySelectorAll('.toggle_container').forEach((toggle) => {
             toggle.addEventListener('click', (e) =>{

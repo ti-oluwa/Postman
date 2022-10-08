@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css?family=Manrope');
+@import url('https://fonts.googleapis.com/css?family=Raleway');
+@import url('https://fonts.googleapis.com/css?family=DM+Sans');
+@import url('https://fonts.googleapis.com/css?family=Cabin');
+
+body{
+    background-color: rgba(200, 200, 200, 0.05);
+    
+}
+
+.be_container{
+    margin-top: 82px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: clamp(40px, 2vw, 50px) clamp(10px, 2vw, 50px);
+    min-height: 80vh;
+    gap: 16px;
+}
+
+.be_container h1{
+    font-size: clamp(28px, 2vw, 40px);
+    color: #555;
+    /* font-family: ; */
+    padding: 10px;
+}
+
+.purchase{
+    display: flex;
+    flex-direction: column;
+    gap: clamp(5px, 2vw, 10px);
+    padding: 14px 24px;
+    width: 100%;
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    filter: blur(5px);
+    transform: scale(0.6) translateY(100px);
+    z-index: -1;
+}
+
+.show_purchases{
+    animation: show_purchase 0.5s ease-in-out;
+    animation-delay: 0.2s;
+    animation-fill-mode: forwards;
+}
+
+@keyframes show_purchase {
+    0% {
+        transform: scale(0.6) translateY(100px);
+        filter: blur(5px);
+        opacity: 0;
+        z-index: -1;
+    }
+    100% {
+        transform: scale(1) translateY(0px);
+        filter: blur(0px);
+        opacity: 1;
+        z-index: 1;
+    }
+}
+
+.pending{
+    border-left: coral 3px solid;
+}
+
+.success{
+    border-left: hsla(120, 61%, 56%) 3px solid;
+}
+
+
+.failed{
+    border-left: hsla(0, 61%, 56%) 3px solid;
+}
+
+.purchase h1{
+    font-family: 'Manrope';
+    font-size: clamp(14px, 2vw, 18px);
+    color: #333;
+}
+
+.purchase .id{
+    font-family: 'Raleway';
+    font-size: clamp(12px, 2vw, 14px);
+    color: #555;
+    font-weight: 600;
+}
+
+.purchase .status{
+    font-family: 'Manrope';
+    font-size: clamp(10px, 2vw, 12px);
+    color: #555;
+    cursor: pointer;
+}
+
+
+.purchase .date{
+    font-family: 'DM Sans';
+    font-size: clamp(8px, 2vw, 10px);
+    color: #444;
+}
+
+.pages{
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 20px;
+    margin-top: 20px;
+    margin-bottom: -30px;
+    width: 100%;
+}
+
+.pages a{
+    font-size: clamp(12px, 2vw, 14px);
+    font-family: 'Raleway';
+    color: #555;
+    font-weight: 700;
+}
+
+.pages a:hover{
+    color: hsla(120, 61%, 56%, 0.6);
+}

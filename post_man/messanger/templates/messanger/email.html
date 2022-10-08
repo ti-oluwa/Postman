@@ -59,15 +59,27 @@
                             {% endif %}
                                 <input id="{{ email.id }}" type="checkbox" value="{{ email.id }}" >
                                 <div>
-                                    {% if email.sent_to.all|length == 1 %}
-                                        {% for email_address in email.sent_to.all %}
-                                            <h3>Sent to {{ email_address.address | truncatechars:20 }}</h3>
-                                        {% endfor %}
-                                    {% elif email.sent_to.all|length  > 1 and email.sent_to.all|length < email.sent_by.added_email_addresses.all|length %}
-                                        <h3>Sent to {{ email.sent_to.all | length }} address{{ email.sent_to.all | length | pluralize:"s,es" }}</h3>
-                                    {% elif email.sent_to.all|length == email.sent_by.added_email_addresses.all|length %}
-                                        <h3>Sent to all addresses</h3>
-                                    {%  endif %}
+                                    {% if email.is_sent %}
+                                        {% if email.sent_to.all|length == 1 %}
+                                            {% for email_address in email.sent_to.all %}
+                                                <h3>Sent to {{ email_address.address | truncatechars:20 }}</h3>
+                                            {% endfor %}
+                                        {% elif email.sent_to.all|length  > 1 and email.sent_to.all|length < email.sent_by.added_email_addresses.all|length %}
+                                            <h3>Sent to {{ email.sent_to.all | length }} address{{ email.sent_to.all | length | pluralize:"s,es" }}</h3>
+                                        {% elif email.sent_to.all|length == email.sent_by.added_email_addresses.all|length %}
+                                            <h3>Sent to all addresses</h3>
+                                        {%  endif %}
+                                    {% else %}
+                                        {% if email.send_to.all|length == 1 %}
+                                            {% for email_address in email.send_to.all %}
+                                                <h3>Failed to send to {{ email_address.address | truncatechars:20 }}</h3>
+                                            {% endfor %}
+                                        {% elif email.send_to.all|length  > 1 and email.send_to.all|length < email.sent_by.added_email_addresses.all|length %}
+                                            <h3>Failed to send to {{ email.send_to.all | length }} address{{ email.send_to.all | length | pluralize:"s,es" }}</h3>
+                                        {% elif email.send_to.all|length == email.sent_by.added_email_addresses.all|length %}
+                                            <h3>Failed to send to all addresses</h3>
+                                        {%  endif %}
+                                    {% endif %}
                                     <p>{{ email.date_sent| date:'M d y' }}</p>
                                 </div>
                                 {% if email.subject %}
@@ -87,7 +99,7 @@
                                 {% if not email.is_html %}
                                     <p>{{ email.body | linebreaks | urlize | telify }}</p>
                                 {% else %}
-                                    <p>{{ email.body }}</p>
+                                    <p>{{ email.body | linebreaks }}</p>
                                 {% endif %}
                                 {% if email.attachments.all|length > 0 %}
                                     <div class="attachments">
@@ -201,7 +213,7 @@
             <label for="message">Compose mail</label>
             <div class="email_field">
                 <label for="subject">Subject</label>
-                <input type="text" id="subject" maxlength="160">
+                <input type="text" id="subject" maxlength="160" autofocus>
             </div>
             <div class="email_field">
                 <label for="cc">Cc</label>
@@ -228,7 +240,8 @@
                     <span>Attach HTML message instead</span>
                     <img src="{% static 'images/attached-file.svg' %}" alt="" style="width: 15px; height: 15px;">
                 </label>
-                <input type="file" name="file" id="attached_html_file" accept=".html">
+                <input type="file" name="file" id="attached_html_file" accept=".html" max="26214400">
+                <a id="edit_html" style="display: none;">Edit HTML</a>
             </div>
         </form>
 
@@ -405,25 +418,25 @@
 
         const messages = document.querySelectorAll('.message');
         var contacts = document.querySelectorAll('.contact');
-        var show_delay = 0.2;
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting){
-                    entry.target.classList.add('show_messages');
-                }
-            })
-        });
-        messages.forEach((message) => {
-            observer.observe(message);
-            message.style.animationDelay = `${show_delay}s`;
-            show_delay += 0.1;
-        });
+        // var show_delay = 0.2;
+        // const observer = new IntersectionObserver((entries) => {
+        //     entries.forEach(entry => {
+        //         if (entry.isIntersecting){
+        //             entry.target.classList.add('show_messages');
+        //         }
+        //     })
+        // });
+        // messages.forEach((message) => {
+        //     observer.observe(message);
+        //     message.style.animationDelay = `${show_delay}s`;
+        //     show_delay += 0.1;
+        // });
 
-        setTimeout(() => {
-            messages.forEach((message) => {
-                message.style.animationDelay = '0.2s';
-            });
-        }, 1000);
+        // setTimeout(() => {
+        //     messages.forEach((message) => {
+        //         message.style.animationDelay = '0.2s';
+        //     });
+        // }, 1000);
 
         if (messages.length != 0) {
             // messages[0].scrollIntoView();
@@ -887,11 +900,25 @@
 
             if (document.querySelector('#attached_html_file').files.length > 0){
                 document.querySelectorAll('.attach')[1].querySelector('label').querySelector('span').innerText = document.querySelector('#attached_html_file').files[0].name;
-                document.querySelector('#message').disabled = true;
+                document.querySelector('#edit_html').style.display = 'block';
             }
             else{
                 document.querySelectorAll('.attach')[1].querySelector('label').querySelector('span').innerText = 'Attach HTML message instead';
-                document.querySelector('#message').disabled = false;
+                document.querySelector('#edit_html').style.display = 'none';
+            }
+
+            var attached_files = document.querySelector('#attached_file').files;
+            var total_size = 0;
+            for (var i = 0; i < attached_files.length; i++){
+                total_size += attached_files[i].size;
+            };
+            if (fileSizeDoesNotExceed(total_size, 26214400)){
+                document.querySelector('.attach').querySelector('label').querySelector('span').style.color = '';
+                document.querySelector('#send_btn').style.pointerEvents = 'auto';
+            }
+            else{
+                document.querySelector('.attach').querySelector('label').querySelector('span').style.color = 'hsla(0, 50%, 50%)';
+                document.querySelector('#send_btn').style.pointerEvents = 'none';
             }
         });
 
@@ -972,6 +999,35 @@
                 });
             };
             
+        });
+
+        document.querySelector('#edit_html').addEventListener('click', function(){
+            var attached_html_file = document.querySelector('#attached_html_file').files[0];
+            var formData = new FormData();
+            var payload = {'action': 'edit_html'}
+            formData.append('attached_html_file', attached_html_file);
+            formData.append('payload', JSON.stringify(payload))
+
+            $.ajax({
+                url: '{% url "send" %}',
+                method: 'POST',
+                contentType: false,
+                dataType: 'json',
+                data: formData,
+                processData: false,
+                cache: false,
+                headers: {
+                    'X-CSRFToken': getCookie("csrftoken"),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(data){
+                    if (data['success'] == 'true'){
+                        message_field.value = data['html'];
+                        message_field.title = 'Edit file content';
+                    }
+                }
+            });
+
         });
 
         document.querySelector('.yes').addEventListener('click', (e) => {

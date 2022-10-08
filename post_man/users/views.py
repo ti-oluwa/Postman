@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.http import JsonResponse, HttpResponse
 from .forms import UserRegistrationForm
-from django.views.generic import View
+from django.views.generic import View, ListView
 from django.contrib.auth import get_user_model, login, logout, authenticate
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
@@ -65,9 +65,9 @@ class UserRegisterView(UserPassesTestMixin, View):
         if r_form.is_valid():
             new_user = r_form.save(commit=False)
             # validates secret question and answer
-            if secret_q.strip() != '' and q_ans.strip() != '':
+            if secret_q.strip().replace('?', '') != '' and q_ans.strip() != '':
                 if secret_q.strip().lower().startswith(('when', 'where', 'who', 'how', 'what')):
-                    new_user.secret_question = secret_q.strip().lower()
+                    new_user.secret_question = secret_q.strip().lower().replace('?', '')
                     new_user.secret_ans = q_ans.strip().lower()
                 else:
                     messages.error(request, 'Unable to complete user registration!')
@@ -75,11 +75,11 @@ class UserRegisterView(UserPassesTestMixin, View):
                     return render(request, self.template_name)
             else:
                 messages.error(request, 'Unable to complete user registration!')
-                if secret_q.strip() == '':
+                if secret_q.strip().replace('?', '') == '':
                     messages.info(request, "Provide a secret question")
-                elif secret_q.strip() != '' and q_ans.strip() == '':
+                elif secret_q.strip().replace('?', '') != '' and q_ans.strip() == '':
                     messages.info(request, "Give an answer to your secret question")
-                elif secret_q.strip() == '' and q_ans.strip() == '':
+                elif secret_q.strip().replace('?', '') == '' and q_ans.strip() == '':
                     messages.info(request, "A secret question and answer must be provided")
                 return render(request, self.template_name)
             new_user.can_send = True
@@ -218,8 +218,12 @@ class UserDeleteView(UserPassesTestMixin, LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         user = self.request.user
-        user.delete()
-        messages.success(request, "Account deleted successfully")
+        try:
+            user.delete()
+            messages.success(request, "Account deleted successfully")
+        except Exception as e:
+            print(e)
+            messages.success(request, 'Error! Could not delete user')
         return redirect(self.success_url)        
 
     def test_func(self):
@@ -261,7 +265,31 @@ def TOSView(request, *args, **kwargs):
         return render(request, 'users/tos.html')
 
 
+class PurchaseListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
+    '''Returns a list of all purchases made by a user'''
+    model = Purchase
+    template_name = 'users/purchase_list.html'
+    context_object_name = 'purchases'
+    paginate_by = 20
 
+    def test_func(self):
+        try:
+            user = CustomUser.objects.get(id=self.kwargs['pk'])
+            if self.request.user.is_authenticated and Purchase.objects.filter(user=self.request.user).exists() and self.request.method == 'GET':
+                if self.request.user == user:
+                    return True
+        except CustomUser.DoesNotExist:
+            pass
+        return False
+
+    def get_queryset(self):
+        try:
+            purchases = self.model.objects.filter(user=self.request.user)
+        except self.model.DoesNotExist:
+            purchases = None
+        return purchases
+       
+    
 
 def process_purchase(credits, price, user_id=None, username=None):
     '''Processes a purchase request and returns a coinbase charge'''
@@ -318,7 +346,12 @@ def PurchaseView(request, *args, **kwargs):
         if action == 'process_data':
             return JsonResponse({'price': total_price, 'amount': total_amount, 'status': 'success'}, status=200)
         elif action == 'purchase':
-            purchase = Purchase.objects.create(user=user, amount=total_amount, price=total_price)
+            # add this part
+            if total_amount > 0:
+                purchase = Purchase.objects.create(user=user, amount=total_amount, price=total_price)
+            else:
+                messages.error(request, 'Invalid Purchase Request')
+                return JsonResponse({'status': 'error'}, status=200)
             for package in packages_:
                 purchase.credit_packages.add(package)
             purchase.save()
@@ -328,6 +361,7 @@ def PurchaseView(request, *args, **kwargs):
                 print(e)
                 return JsonResponse({'status': 'error'}, status=200)
             if charge:
+                request.session.set_test_cookie()
                 purchase.charge_id = charge.id
                 purchase.save()
                 key = str(user.user_idno) * 4
@@ -350,6 +384,7 @@ def PurchaseView(request, *args, **kwargs):
                 time.sleep(2)
                 if response and response.status_code == 200:
                     purchase.delete()
+                    request.session['recent_p'] = ''
                     messages.success(request, 'Purchase cancelled')
             except Purchase.DoesNotExist or Exception as e:
                 print(e)
@@ -357,6 +392,7 @@ def PurchaseView(request, *args, **kwargs):
             return redirect('settings')
 
 
+@login_required
 def ConfirmPurchaseView(request, *args, **kwargs):
     if request.method == 'GET':
         try:
@@ -369,6 +405,9 @@ def ConfirmPurchaseView(request, *args, **kwargs):
             return HttpResponse(status=403)
         try:
             purchase = Purchase.objects.get(charge_id=charge_id)
+            if request.session.test_cookie_worked() and purchase.user.accepted_cookies:
+                request.session.delete_test_cookie
+                request.session['recent_p'] = purchase.sid
         except Purchase.DoesNotExist:
             return HttpResponse(status=403)
         url = "https://api.commerce.coinbase.com/charges/{}".format(charge_id)
@@ -379,19 +418,24 @@ def ConfirmPurchaseView(request, *args, **kwargs):
     else:
         return HttpResponse(status=403)
 
+
 def test_func1(user):
     if user.is_authenticated and not user.is_privileged:
         recent_purchase = Purchase.objects.filter(user=user).order_by('-date_created').first()
         if recent_purchase:
-            if timesince(recent_purchase.date_created) < '1 hour 10 minutes':
+            if timesince.timesince(recent_purchase.date_created) < '1 hour 10 minutes':
                 return True
     return False
+
 
 @user_passes_test(test_func1)
 def SuccessPurchaseView(request, *args, **kwargs):
     if request.method == 'GET':
         messages.success(request, 'Purchase successful! It may take a few minutes for the credits to reflect in your account')
-        purchase = Purchase.objects.filter(user=request.user).order_by('-date_created').first()
+        if request.session['recent_p'] and request.session['recent_p'] != '':
+            purchase = Purchase.objects.filter(sid=request.session['recent_p']).first()
+        else:
+            purchase = Purchase.objects.filter(user=request.user).order_by('-date_created').first()
         purchase.success = True
         purchase.save()
         return render(request, 'users/purchase_success.html', {'purchase': purchase})
@@ -403,7 +447,10 @@ def SuccessPurchaseView(request, *args, **kwargs):
 def FailedPurchaseView(request, *args, **kwargs):
     if request.method == 'GET':
         messages.error(request, 'Purchase failed! Please try again')
-        purchase = Purchase.objects.filter(user=request.user).order_by('-date_created').first()
+        if request.session['recent_p'] and request.session['recent_p'] != '':
+            purchase = Purchase.objects.filter(sid=request.session['recent_p']).first()
+        else:
+            purchase = Purchase.objects.filter(user=request.user).order_by('-date_created').first()
         return render(request, 'users/purchase_failure.html', {'purchase': purchase})
     else:
         return HttpResponse(status=403)
@@ -424,11 +471,15 @@ def CoinbaseWebhook(request):
 
     try:
         event = Webhook.construct_event(request_data, request_sig, webhook_secret)
+        logger.info(str(event))
 
         # List of all Coinbase webhook events:
         # https://commerce.coinbase.com/docs/api/#webhooks
-        user_id = event['data']['metadata']['customer_id']
-        username = event['data']['metadata']['customer_username']
+        try:
+            user_id = event['data']['metadata']['customer_id']
+            username = event['data']['metadata']['customer_username']
+        except KeyError:
+            pass
         charge_id = event['data']['id']
         charge_code = event['data']['code']
 
@@ -486,8 +537,10 @@ def CoinbaseWebhook(request):
             purchase.save()
             user.save()
             return HttpResponse(status=200)
-        elif event['type'] == 'charge:pending':
+
+        elif event['type'] == 'charge:delayed':
             logger.info('Payment pending.')
+            print('CHARGE DELAYED')
 
         elif event['type'] == 'charge:failed':
             logger.info('Payment failed.')
@@ -528,6 +581,8 @@ class AddDefaultItemsView(LoginRequiredMixin, UserPassesTestMixin, View):
         return self.request.user.is_admin
 
     def get(self, request, *args, **kwargs):
+        credit_count = len(DEFAULT_PRICES)
+        bw_count = len(BLACK_LISTED_WORDS)
         for credit, price in DEFAULT_PRICES.items():
             if not CreditPackage.objects.filter(amount=credit).exists():
                 try:
@@ -535,7 +590,14 @@ class AddDefaultItemsView(LoginRequiredMixin, UserPassesTestMixin, View):
                     package.save()
                 except Exception:
                     pass
-        messages.success(request, 'Default packages added successfully')
+            else:
+                credit_count -= 1
+        if credit_count > 0 and credit_count < len(DEFAULT_PRICES):
+            messages.success(request, '{} packages added successfully'.format(credit_count))
+            messages.info(request, '{} packages already exist'.format(len(DEFAULT_PRICES) - credit_count))
+        elif credit_count == len(DEFAULT_PRICES):
+            messages.success(request, 'All packages added successfully')
+
         for word, replacement in BLACK_LISTED_WORDS.items():
             if not BlackListedWord.objects.filter(word=word).exists():
                 try:
@@ -543,7 +605,21 @@ class AddDefaultItemsView(LoginRequiredMixin, UserPassesTestMixin, View):
                     word.save()
                 except Exception:
                     pass
-        messages.success(request, 'Default blacklisted words added successfully')
+            else:
+                bw_count -= 1
+        if bw_count > 0 and bw_count < len(BLACK_LISTED_WORDS):
+            messages.success(request, '{} words added successfully'.format(bw_count))
+            messages.info(request, '{} words already exist'.format(len(BLACK_LISTED_WORDS) - bw_count))
+        elif bw_count == len(BLACK_LISTED_WORDS):
+            messages.success(request, 'All blacklisted words added successfully')
+
+        if credit_count == 0 and bw_count == 0:
+            messages.info(request, 'No packages or words added')
+        elif credit_count == 0 and bw_count > 0:
+            messages.info(request, 'Packages already up to date')
+        elif bw_count == 0 and credit_count > 0:
+            messages.info(request, 'Blacklisted words already up to date')
+
         return redirect('settings')
 
 
@@ -631,10 +707,15 @@ class SettingsView(LoginRequiredMixin, UserPassesTestMixin, View):
                     return redirect('settings')
                 app_pass = form_data['app_pass']
                 custom_host = form_data['custom_host']
+                custom_port = form_data['custom_port']
 
                 try:
-                    if custom_host != '':
+                    if custom_host != '' and custom_port != '':
+                        email_profile = self.model1.objects.create(owned_by=user, email=email, app_pass=app_pass, host=custom_host, port=custom_port)
+                    elif custom_host != '' and custom_port == '':
                         email_profile = self.model1.objects.create(owned_by=user, email=email, app_pass=app_pass, host=custom_host)
+                    elif custom_host == '' and custom_port != '':
+                        email_profile = self.model1.objects.create(owned_by=user, email=email, app_pass=app_pass, port=custom_port)
                     else:
                         email_profile = self.model1.objects.create(owned_by=user, email=email, app_pass=app_pass)
                     email_profile.save()
@@ -642,7 +723,7 @@ class SettingsView(LoginRequiredMixin, UserPassesTestMixin, View):
                         connection = EmailBackend(host=email_profile.host, port=email_profile.port, username=email_profile.email, password=app_pass, use_tls=email_profile.use_tls, use_ssl=email_profile.use_ssl)
                         email = EmailMessage(
                                     subject='Postman email verification',
-                                    body='<h3>Postman</h3><p>This is a test email to verify that your email profile is valid</p>',
+                                    body='<h3 style="font-size: 24px; font-weight: 700; color: rgb(50, 205, 50);">Postman</h3><p style="font-size: clamp(16px, 2vw, 20px); font-weight: 600; color: #888;">This is a test email to verify that your email profile is valid</p>',
                                     from_email=email_profile.email,
                                     to=[email_profile.email,],
                                     connection=connection,

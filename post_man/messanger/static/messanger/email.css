@@ -94,7 +94,7 @@
 
 .message_popup .email_field{
     display: flex;
-    align-items: center !important;
+    align-items: center;
     gap: 5px;
     margin-bottom: 10px;
 }
@@ -125,6 +125,23 @@
     letter-spacing: 0.8px;
     hyphens: auto;
     line-break: anywhere ;
+}
+
+.message_popup #edit_html{
+    font-size: 8px;
+    color: coral;
+    cursor: pointer;
+}
+
+.attach{
+    display: flex;
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.attach:last-of-type{
+    margin-left: 12px;
 }
 
 .message_popup input:focus-within{

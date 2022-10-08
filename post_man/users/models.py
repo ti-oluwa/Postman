@@ -27,8 +27,8 @@ def decrypt(key, value):
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     user_idno = models.CharField(max_length=50, verbose_name='User ID', unique=True, null=True, blank=True, editable=False)
     username = models.CharField(unique=True, max_length=60)
-    secret_question = models.CharField(max_length=500, verbose_name='Secret Question', null=True, blank=True, editable=False)
-    secret_ans = models.CharField(max_length=500, verbose_name='Secret Answer', null=True, blank=True, editable=False)
+    secret_question = models.CharField(max_length=500, verbose_name='Secret Question', null=True, blank=True, editable=False, help_text='This is a secret question that you can use to reset your password if you forget it.')
+    secret_ans = models.CharField(max_length=500, verbose_name='Secret Answer', null=True, blank=True, editable=False, help_text='This is a secret answer to your secret question')
     date_joined = models.DateTimeField(verbose_name='date joined', auto_now_add=True)
     last_login = models.DateTimeField(verbose_name='last login', auto_now=True)
     is_admin = models.BooleanField(default=False)
@@ -47,7 +47,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['secret_question', 'secret_ans']
 
     objects = CustomUserManager()
 

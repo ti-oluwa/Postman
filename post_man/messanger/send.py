@@ -13,15 +13,15 @@ from django.core.mail import send_mail
 from twilio.rest import Client
 
 # Your Account SID from twilio.com/console
-account_sid = "AC5cacfa4472bd3612fe6fbed7e58f2538"
+account_sid = ""
 # Your Auth Token from twilio.com/console
-auth_token  = "62fa2d38dbdf19b120dc3d861b287e39"
+auth_token  = ""
 
 client = Client(account_sid, auth_token)
 
 message = client.messages.create(
-    to="+23409013329333", 
-    from_="+18065831058",
+    to="", 
+    from_="",
     body="Hello from Python!")
 
 print(message.sid, message.status)

@@ -1,3 +1,4 @@
+from genericpath import exists
 from os import remove
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
@@ -43,6 +44,7 @@ class TextMessage(models.Model):
     '''The message to be sent'''
     message = models.TextField(max_length=500)
     sent_by = models.ForeignKey(CustomUser, related_name='text_messages', verbose_name="sender", null=True, on_delete=models.CASCADE)
+    send_to = models.ManyToManyField(PhoneNumber, max_length=16, related_name="directed_sms", default=None, verbose_name="proposed receivers")
     sent_to = models.ManyToManyField(PhoneNumber, max_length=16, default=None, blank=True, related_name="sms_received", verbose_name="receivers")
     date_created = models.DateTimeField(default=timezone.now)
     date_sent = models.DateTimeField(default=timezone.now) 
@@ -69,12 +71,12 @@ class TextMessage(models.Model):
         if self.sent_by.can_send and self.sent_by.accepted_pp:
             if receivers and receivers != []:
                 for receiver in receivers:
-                    self.sent_to.add(receiver)
+                    self.send_to.add(receiver)
                 self.save()
                 return self.finish_sending(receivers) 
 
-            elif not receivers and self.sent_to.all() != []:
-                return self.finish_sending(self.sent_to.all())
+            elif not receivers and self.send_to.all() != []:
+                return self.finish_sending(self.send_to.all())
 
             else:
                 return False, 'No receivers specified.'
@@ -110,7 +112,7 @@ class TextMessage(models.Model):
                         sender = random.choice(senders)
                     else:
                         sender = random.choice(active_senders)
-                    if math.floor(self.sent_by.message_credit) >= len(self.sent_to.all()):
+                    if math.floor(self.sent_by.message_credit) >= len(self.send_to.all()) or self.sent_by.is_privileged:
                         if sender.api_provider == 'telnyx':
                             self.send_via_telnyx(sender, receiver)
                             self.sent_by.save()
@@ -120,14 +122,7 @@ class TextMessage(models.Model):
                             self.send_via_twilio(sender, receiver)
                             self.sent_by.save()
                             count += 1
-                    elif self.sent_by.is_privileged:
-                        if sender.api_provider == 'telnyx':
-                            self.send_via_telnyx(sender, receiver)
-                            count += 1
-
-                        elif sender.api_provider == 'twilio':
-                            self.send_via_twilio(sender, receiver)
-                            count += 1
+                    
                     else:
                         self.sent_by.can_send = False
                         self.sent_by.save()
@@ -137,13 +132,17 @@ class TextMessage(models.Model):
                 else:
                     time.sleep(1)
                     count = 0
-            if self.sent_by.wants_history:    
+            if not self.sent_by.wants_history:    
+                self.delete()
+
+            if len(self.sent_to.all()) == len(self.send_to.all()):
                 self.is_sent = True
                 self.save()
-            else:
-                self.delete()
-            if len(self.sent_to.all()) > 0:
                 return True, 'Message sent successfully.'
+            elif len(self.sent_to.all()) > 0 and len(self.sent_to.all()) < len(self.send_to.all()):
+                self.is_sent = True
+                self.save()
+                return True, 'Message sent! Some failed'
             else:
                 return False, 'Message failed to send. Check your internet connectivity.'
         else:
@@ -158,21 +157,21 @@ class TextMessage(models.Model):
             message = client.messages.create(
                 body=self.message,
                 from_=sender.number.as_e164,
-                to=receiver.number.as_e164
+                to=receiver.number.as_e164,
             )
             print(message.sid)
-            self.sent_by.message_credit -= 1
+            if not self.sent_by.is_privileged:
+                self.sent_by.message_credit -= 1
+            self.sent_to.add(receiver)
+            self.save()
 
         except TwilioRestException as e:
             print(e)
-            self.sent_to.remove(receiver)
-            self.save()
             pass
         except Exception as e:
             print(e)
-            self.sent_to.remove(receiver)
-            self.save()
             pass
+
 
     def send_via_telnyx(self, sender, receiver):
         '''Sends the message via telnyx'''
@@ -183,42 +182,33 @@ class TextMessage(models.Model):
                 to=receiver.number.as_e164,
                 text=self.message,
             )
-            self.sent_by.message_credit -= 1
+            if not self.sent_by.is_privileged:
+                self.sent_by.message_credit -= 1
+            self.sent_to.add(receiver)
+            self.save()
 
         except telnyx.error.APIConnectionError as e:
             print(e)
-            self.sent_to.remove(receiver)
-            self.save()
             pass
             # return False, 'Connection error! Please Check your internet connectivity.'
         except telnyx.error.APIError as e:
             print(e)
-            self.sent_to.remove(receiver)
-            self.save()
             pass
             # return False, e.__dict__['errors'][0]['detail']
         except telnyx.error.AuthenticationError as e:
             print(e)
-            self.sent_to.remove(receiver)
-            self.save()
             pass
             # return False, e.__dict__['errors'][0]['detail']
         except telnyx.error.InvalidRequestError as e:
             print(e)
-            self.sent_to.remove(receiver)
-            self.save()
             pass
             # return False, e.__dict__['errors'][0]['detail']
         except telnyx.error.RateLimitError as e:
             print(e)
-            self.sent_to.remove(receiver)
-            self.save()
             pass
             # return False, e.__dict__['errors'][0]['detail']
         except Exception as e:
             print(e)
-            self.sent_to.remove(receiver)
-            self.save()
             pass
             # return False, e
 
@@ -232,6 +222,7 @@ class Email(models.Model):
     cc = models.TextField(max_length=500, default=None, blank=True, null=True)
     body = models.TextField(max_length=5000, default=None)
     sent_by = models.ForeignKey(CustomUser, related_name='mails', null=True, verbose_name="sender", on_delete=models.CASCADE)
+    send_to = models.ManyToManyField(EmailAddress, related_name="directed_mails", default=None, verbose_name="proposed receivers")
     sent_to = models.ManyToManyField(EmailAddress, related_name="mails_received", verbose_name="receivers")
     date_created = models.DateTimeField(default=timezone.now)
     date_sent = models.DateTimeField(default=timezone.now)
@@ -259,11 +250,11 @@ class Email(models.Model):
         if self.sent_by.can_send and self.sent_by.accepted_pp: 
             if receivers and receivers != []:
                 for receiver in receivers:
-                    self.sent_to.add(receiver)
+                    self.send_to.add(receiver)
                 self.save()
                 return self.finish_sending()
                 
-            elif not receivers and self.sent_to.all() != []:
+            elif not receivers and self.send_to.all() != []:
                 return self.finish_sending()
 
             else:
@@ -307,8 +298,8 @@ class Email(models.Model):
                     cc = []
 
                 #split the receivers into chunks to be sent with different senders and connections
-                no_of_splits = math.ceil(len(self.sent_to.all())/100)
-                list_of_receivers = numpy.array_split(self.sent_to.all(), no_of_splits)
+                no_of_splits = math.ceil(len(self.send_to.all())/100)
+                list_of_receivers = numpy.array_split(self.send_to.all(), no_of_splits)
                 email_msgs = []
                     
                 for receivers in list_of_receivers:
@@ -319,8 +310,8 @@ class Email(models.Model):
                                     subject=self.subject,
                                     body=self.body,
                                     from_email=sender.email,
-                                    to=[sender.email,],
-                                    bcc=[receiver.address,] + bcc,
+                                    to=[receiver.address,],
+                                    bcc=bcc,
                                     cc=cc,
                                     attachments=attachments,
                                     connection=connection,
@@ -333,33 +324,36 @@ class Email(models.Model):
                     for email in email_msgs:
                         if self.is_html:
                             email.content_subtype = 'html'
-                        if math.floor(self.sent_by.message_credit) >= len(self.sent_to.all()):
+                        if math.floor(self.sent_by.message_credit) >= len(self.send_to.all()) or self.sent_by.is_privileged:
                             try:
                                 email.send()
-                                self.sent_by.message_credit -= 1
+                                if not self.sent_by.is_privileged:
+                                    self.sent_by.message_credit -= 1
+                                receiver_ = [ EmailAddress.objects.filter(address=recipient, added_by=self.sent_by).first() for recipient in email.recipients() if EmailAddress.objects.filter(address=recipient, added_by=self.sent_by).exists() ][0]
+                                self.sent_to.add(receiver_)
+                                self.save()
                                 self.sent_by.save()
                             except Exception as e:
-                                print(e)
-                                receiver_ = EmailAddress.objects.get(address=email.bcc[0])
-                                self.sent_to.remove(receiver_)
-                                self.save()
+                                print(e.args)
                                 pass
 
-                        elif self.sent_by.is_privileged:
-                            email.send()
                         else:
                             self.sent_by.can_send = False
                             self.sent_by.save()
                             self.save()
                             return False, 'Insufficient message credits.[{} recipient(s), {} message credit(s) available] Please purchase more.'.format(len(self.sent_to.all()), math.floor(self.sent_by.message_credit))
     
-                    if self.sent_by.wants_history:    
+                    if not self.sent_by.wants_history:
+                        self.delete()
+
+                    if len(self.sent_to.all()) == len(self.send_to.all()):
                         self.is_sent = True
                         self.save()
-                    else:
-                        self.delete()
-                    if len(self.sent_to.all()) > 0:
                         return True, 'Email sent successfully.'
+                    elif len(self.sent_to.all()) > 0 and len(self.sent_to.all()) < len(self.send_to.all()):
+                        self.is_sent = True
+                        self.save()
+                        return True, 'Email sent! Some failed'
                     else:
                         return False, 'Email failed to send. Check your internet connectivity.'
                 except Exception as e:
@@ -367,6 +361,7 @@ class Email(models.Model):
                     return False, f'Failed to send email: {e}'
             else:
                 return False, 'You have no active emailing profiles. Please create or enable one and retry.'
+
 
     def delete(self, *args, **kwargs):
         for attachment in self.attachments.all():

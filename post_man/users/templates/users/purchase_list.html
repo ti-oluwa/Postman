@@ -1,0 +1,128 @@
+{% extends 'messanger/base.html' %}
+
+{% load static %}
+{% block title %}
+    <title>Postman | {{ request.user.username| title }}'s Purchases</title>
+{% endblock title %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'messanger/purchase_list.css' %}">
+{% endblock styles %}
+
+
+{% block content %}
+    <div class="be_container">
+        {% if purchases %}
+            <h1>Your Purchases</h1>
+            {% for purchase in purchases %}
+                {% if purchase.is_closed and purchase.success %}
+                    <div class="purchase success">
+                        <h3>{{ purchase.amount }} for ${{ purchase.price }}</h3>
+                        <p class="id">{{ purchase.sid }}</p>
+                        <a class="status" style="color: hsla(120, 61%, 56%);">confirmed</a>
+                        <p class="date">{{ purchase.date_closed| timesince }} ago</p>
+                    </div>
+                {% elif purchase.is_closed and not purchase.success %}
+                    <div class="purchase failed">
+                        <h3>{{ purchase.amount }} for ${{ purchase.price }}</h3>
+                        <p class="id">{{ purchase.sid }}</p>
+                        <a class="status" style="color: hsla(0, 61%, 56%);">Closed</a>
+                        <p class="date">{{ purchase.date_closed| timesince }} ago</p>
+                    </div>
+                {% elif not purchase.is_closed and not purchase.success %}
+                    <div class="purchase pending">
+                        <h3>{{ purchase.amount }} for ${{ purchase.price }}</h3>
+                        <p class="id">{{ purchase.sid }}</p>
+                        <a class="status" style="color: coral;">Pending</a>
+                        <p class="date">{{ purchase.date_created| timesince }} ago</p>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        <div class="pages">
+            {% if is_paginated %}
+                {% if page_obj.has_previous and page_obj.number > 1 %}
+                    <a class="" href="?page={{page_obj.previous_page_number}}"><< Previous</a>
+                {% endif %}
+
+                {% if page_obj.has_next %}
+                    <a class="" href="?page={{ page_obj.next_page_number }}">Next >></a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript">
+    window.onclick = (event) => {
+        const accept_btn = document.getElementById('accept');
+        const decline_btn = document.getElementById('decline');
+        if(document.querySelector('.cookie_msg') && !document.querySelector('.cookie_msg').contains(event.target) && !document.querySelector('.cookie_msg').classList.contains('close_cookie')){
+            document.querySelector('.cookie_msg').classList.add('close_cookie');
+        }
+        if (accept_btn && accept_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'accept',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        }
+        else if (decline_btn && decline_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'decline',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        };
+    };
+
+    window.onload = () => {
+        var purchases = document.querySelectorAll('.purchase');
+
+        var show_delay = 0.2;
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting){
+                    entry.target.classList.add('show_purchases');
+                }
+            })
+        });
+        purchases.forEach((purchase) => {
+            observer.observe(purchase);
+            purchase.style.animationDelay = `${show_delay}s`;
+            show_delay += 0.1;
+        });
+
+        setTimeout(() => {
+            purchases.forEach((purchase) => {
+                purchase.style.animationDelay = '0.2s';
+            });
+        }, 1000);
+    };
+</script>
+{% endblock script %}
+
+        
+ 

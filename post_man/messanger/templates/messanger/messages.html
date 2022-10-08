@@ -58,15 +58,27 @@
                             {% endif %}  
                                 <input id="{{ message.id }}" type="checkbox" value="{{ message.id }}">
                                 <div>
-                                    {% if message.sent_to.all|length == 1 %}
-                                        {% for number in message.sent_to.all %}
-                                            <h3>Sent to {{ number }}</h3>
-                                        {% endfor %}
-                                    {% elif message.sent_to.all|length  > 1 and message.sent_to.all|length < message.sent_by.added_phone_numbers.all|length %}
-                                        <h3>Sent to {{ message.sent_to.all | length }} contact{{ message.sent_to.all | length | pluralize }}</h3>
-                                    {% elif message.sent_to.all|length == message.sent_by.added_phone_numbers.all|length %}
-                                        <h3>Sent to all contacts</h3>
-                                    {%  endif %}
+                                    {% if message.is_sent %}
+                                        {% if message.sent_to.all|length == 1 %}
+                                            {% for number in message.sent_to.all %}
+                                                <h3>Sent to {{ number }}</h3>
+                                            {% endfor %}
+                                        {% elif message.sent_to.all|length  > 1 and message.sent_to.all|length < message.sent_by.added_phone_numbers.all|length %}
+                                            <h3>Sent to {{ message.sent_to.all | length }} contact{{ message.sent_to.all | length | pluralize }}</h3>
+                                        {% elif message.sent_to.all|length == message.sent_by.added_phone_numbers.all|length %}
+                                            <h3>Sent to all contacts</h3>
+                                        {%  endif %}
+                                    {% else %}
+                                        {% if message.send_to.all|length == 1 %}
+                                            {% for number in message.send_to.all %}
+                                                <h3>Failed to send to {{ number }}</h3>
+                                            {% endfor %}
+                                        {% elif message.send_to.all|length  > 1 and message.send_to.all|length < message.sent_by.added_phone_numbers.all|length %}
+                                            <h3>Failed to send to {{ message.send_to.all | length }} contact{{ message.send_to.all | length | pluralize }}</h3>
+                                        {% elif message.send_to.all|length == message.sent_by.added_phone_numbers.all|length %}
+                                            <h3>Failed to send to all contacts</h3>
+                                        {%  endif %}
+                                    {% endif %}
                                     <p>{{ message.date_sent| date:'M d y' }}</p>
                                 </div>
                                 <p class="succinct">{{ message.message | truncatewords:10 }}.</p>
@@ -176,7 +188,7 @@
             <label for="message">Enter message</label>
             <p class="help_text"></p>
             <div>
-                <textarea id="message" placeholder="Enter message here" required maxlength="160" minlength="10" title="Type in your message"></textarea>
+                <textarea id="message" placeholder="Enter message here" required maxlength="160" minlength="10" title="Type in your message" autofocus></textarea>
                 <img id="send_btn" src="{% static 'images/send2.svg' %}" alt="send">
             </div>
         </form>
@@ -360,25 +372,25 @@
 
         const messages = document.querySelectorAll('.message');
         var contacts = document.querySelectorAll('.contact');
-        var show_delay = 0.2;
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting){
-                    entry.target.classList.add('show_messages');
-                }
-            })
-        });
-        messages.forEach((message) => {
-            observer.observe(message);
-            message.style.animationDelay = `${show_delay}s`;
-            show_delay += 0.1;
-        });
+        // var show_delay = 0.2;
+        // const observer = new IntersectionObserver((entries) => {
+        //     entries.forEach(entry => {
+        //         if (entry.isIntersecting){
+        //             entry.target.classList.add('show_messages');
+        //         }
+        //     })
+        // });
+        // messages.forEach((message) => {
+        //     observer.observe(message);
+        //     message.style.animationDelay = `${show_delay}s`;
+        //     show_delay += 0.1;
+        // });
 
-        setTimeout(() => {
-            messages.forEach((message) => {
-                message.style.animationDelay = '0.2s';
-            });
-        }, 1000);
+        // setTimeout(() => {
+        //     messages.forEach((message) => {
+        //         message.style.animationDelay = '0.2s';
+        //     });
+        // }, 1000);
 
         if (messages.length != 0) {
             // messages[0].scrollIntoView();

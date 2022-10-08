@@ -52,8 +52,8 @@ body{
     background-image: -moz-linear-gradient(135deg, #fff, #c7f7b6);
     background-image: -ms-linear-gradient(135deg, #fff, #c7f7b6);
     background-image: linear-gradient(135deg, #fff, #c7f7b6);
-
 }
+
 
 
 h1,h2, h3, h4, h5, h6{
@@ -112,10 +112,14 @@ button:disabled{
     pointer-events: none;
 }
 
+footer{
+    display: none;
+}
+
 
 #login{
     background-color: var(--body-bg-color);
-    padding: 30px 40px;
+    padding: 30px clamp(30px, 2vw, 40px);
     border-radius: 8px;
     min-width: 300px;
     height: auto;

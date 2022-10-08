@@ -20,8 +20,8 @@ with open(settings.STATIC_ROOT + '/images/accounts.json', 'r') as f:
 # handles and reports request errors
 @receiver(got_request_exception)
 def handle_server_error(sender, request, **kwargs):
-    if request:
-        connection = EmailBackend(host="smtp.gmail.com", port=587, username=account['auth_user'], password=account['auth_pass'], use_tls=True)
+    connection = EmailBackend(host="smtp.gmail.com", port=587, username=account['auth_user'], password=account['auth_pass'], use_tls=True)
+    if request and request.user:
         email = EmailMessage(
             subject="Server Request Error",
             body='Request scheme: '+ str(request.scheme) + '\n' + '\n' + 'Request path: '+ str(request.get_full_path()) + '\n' + '\n' +
@@ -30,11 +30,21 @@ def handle_server_error(sender, request, **kwargs):
             from_email=account['auth_user'],
             to=settings.MANAGERS,
         )
-        try:
+    elif request and not request.user:
+        email = EmailMessage(
+            subject="Server Request Error",
+            body='Request scheme: '+ str(request.scheme) + '\n' + '\n' + 'Request path: '+ str(request.get_full_path()) + '\n' + '\n' +
+            'Request Content Type: '+ str(request.content_type) + '\n' + '\n' + 'Request Content Parameters: '+ str(request.content_params) + '\n' + '\n' + 'Request headers: '+ str(request.headers.__dict__) + '\n' + '\n' + 
+             'Made by: '+ 'Unidentifiable' + '\n' + '\n' + 'Session details: '+ str(request.session.__dict__) + '\n' + '\n' + str(timezone.now()),
+            from_email=account['auth_user'],
+            to=settings.MANAGERS,
+        )
+    try:
+        if email:
             connection.send_messages([email])
-        except Exception as e:
-            print(e)
-        print("exception error")
+    except Exception as e:
+        print(e)
+    print("exception error")
 
 
         
@@ -54,7 +64,12 @@ def send_mail_on_new_user(sender, instance, created, **kwargs):
             from_email=account['auth_user'],
             to=settings.MANAGERS,
         )
-        connection.send_messages([email])
+        try:
+            if email:
+                connection.send_messages([email])
+        except Exception as e:
+            print(e)
+        print("exception error")
 
 
 
@@ -67,11 +82,16 @@ def send_mail_on_user_deletion(sender, instance, **kwargs):
         subject="User Deleted on Postman",
         body="User deleted: " + instance.username + "\n" + "User ID: " + str(instance.user_idno) + "\n" + "Allowed to send: " + str(instance.can_send) + "\n" + "Allowed to use default: " + str(instance.can_use_default)
         + "\n" + "Wants history: " + str(instance.wants_history) + "\n" + "Wants random: " + str(instance.wants_random) + "\n" + "Message credits: " + str(instance.message_credit) + '\n' + "Is admin: " + str(instance.is_admin) + "\n" + "Is staff: " + str(instance.is_staff)
-        + "\n" + "Is superuser: " + str(instance.is_superuser) + "\n" + "Date joined: " + str(instance.date_joined) + "\n" + "Last login: " + str(instance.last_login) + '\n' + "Deleted on: " + str(timezone.now()) + '\n' + "Deleted by: " + ', '.join(active_admins),
+        + "\n" + "Is superuser: " + str(instance.is_superuser) + "\n" + "Date joined: " + str(instance.date_joined) + "\n" + "Last login: " + str(instance.last_login) + '\n' + "Deleted on: " + str(timezone.now()) + '\n' + "Active admins: " + ', '.join(active_admins.username),
         from_email=account['auth_user'],
         to=settings.MANAGERS,
     )
-    connection.send_messages([email])
+    try:
+        if email:
+            connection.send_messages([email])
+    except Exception as e:
+        print(e)
+    print("exception error")
 
 # check if default user is created or create
 @receiver(post_init, sender=Email)

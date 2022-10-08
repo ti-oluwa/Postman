@@ -53,22 +53,22 @@ input, textarea{
 
 input:invalid {
     border-color: hsla(0, 61%, 70%, 0.8);
-    animation: shake 2s ease-in-out;
+    animation: shake 0.35s ease-in-out !important;
     animation-fill-mode: forwards;
 }
 
-@keyframes identifier {
+@keyframes shake {
     25%{
-        transform: translateY(-4px);
+        transform: translateX(-4px);
     }
     50%{
-        transform: translateY(4px);
+        transform: translateX(4px);
     }
     75%{
-        transform: translateY(-4px);
+        transform: translateX(-4px);
     }
     100%{
-        transform: translateY(0px);
+        transform: translateX(0px);
     }
 }
 
