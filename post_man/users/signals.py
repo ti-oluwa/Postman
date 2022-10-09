@@ -2,7 +2,7 @@ from django.db.utils import IntegrityError
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 from django.db.models.signals import pre_save, post_save, post_delete, post_init 
-from django.core.signals import got_request_exception, request_started
+from django.core.signals import got_request_exception
 from django.core.mail import EmailMessage
 from django.core.mail.backends.smtp import EmailBackend
 from .models import encrypt, EmailProfile, MessageProfile, CustomUser, CreditPackage, Purchase

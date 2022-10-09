@@ -28,5 +28,3 @@ $RECYCLE.BIN/
 attachments/
 
 
-#exclude migrations
-*/migrations/*
