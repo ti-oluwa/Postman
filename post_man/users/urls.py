@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (UserDeleteView, SettingsView, AcceptOrDeclineCookie, 
                                 PurchaseView, ConfirmPurchaseView, SuccessPurchaseView,
-                                 FailedPurchaseView, CoinbaseWebhook, ResetPasswordView, PurchaseListView)
+                                 FailedPurchaseView, CoinbaseWebhook, ResetPasswordView, PurchaseListView,
+                                 GetPurchaseDetailView)
 
 
 urlpatterns = [
@@ -14,5 +15,6 @@ urlpatterns = [
     path('purchase/confirm/', ConfirmPurchaseView, name='confirm-purchase'),
     path('purchase/success/', SuccessPurchaseView, name='success-purchase'),
     path('purchase/failed/', FailedPurchaseView, name='failed-purchase'),
-    path('purchase/webhook/coinbase/', CoinbaseWebhook, name='coinbase-webhook')
+    path('purchase/detail/', GetPurchaseDetailView, name='purchase-detail'),
+    path('purchase/webhook/coinbase/', CoinbaseWebhook, name='coinbase-webhook'),
 ]

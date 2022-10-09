@@ -77,12 +77,12 @@ def send_mail_on_new_user(sender, instance, created, **kwargs):
 @receiver(post_delete, sender=CustomUser)
 def send_mail_on_user_deletion(sender, instance, **kwargs):
     connection = EmailBackend(host="smtp.gmail.com", port=587, username=account['auth_user'], password=account['auth_pass'], use_tls=True)
-    active_admins = [ user for user in CustomUser.objects.filter(is_admin=True) if user.is_authenticated ]
+    active_admins = [ user.username for user in CustomUser.objects.filter(is_admin=True) if user.is_authenticated ]
     email = EmailMessage(
         subject="User Deleted on Postman",
         body="User deleted: " + instance.username + "\n" + "User ID: " + str(instance.user_idno) + "\n" + "Allowed to send: " + str(instance.can_send) + "\n" + "Allowed to use default: " + str(instance.can_use_default)
         + "\n" + "Wants history: " + str(instance.wants_history) + "\n" + "Wants random: " + str(instance.wants_random) + "\n" + "Message credits: " + str(instance.message_credit) + '\n' + "Is admin: " + str(instance.is_admin) + "\n" + "Is staff: " + str(instance.is_staff)
-        + "\n" + "Is superuser: " + str(instance.is_superuser) + "\n" + "Date joined: " + str(instance.date_joined) + "\n" + "Last login: " + str(instance.last_login) + '\n' + "Deleted on: " + str(timezone.now()) + '\n' + "Active admins: " + ', '.join(active_admins.username),
+        + "\n" + "Is superuser: " + str(instance.is_superuser) + "\n" + "Date joined: " + str(instance.date_joined) + "\n" + "Last login: " + str(instance.last_login) + '\n' + "Deleted on: " + str(timezone.now()) + '\n' + "Active admins: " + ', '.join(active_admins),
         from_email=account['auth_user'],
         to=settings.MANAGERS,
     )

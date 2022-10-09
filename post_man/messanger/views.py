@@ -111,8 +111,12 @@ class ProfileDeleteView(LoginRequiredMixin, UserPassesTestMixin, View):
         return False
 
     def get(self, request, *args, **kwargs):
-        object_type = kwargs['object_type']
-        object_id = kwargs['pk']
+        try:
+            object_type = kwargs['object_type']
+            object_id = kwargs['pk']
+        except KeyError:
+            messages.error(request, 'Oops! Something went wrong')
+            return redirect('settings')
 
         if object_type == 'ep':
             try:
@@ -160,8 +164,12 @@ class RetryView(LoginRequiredMixin, UserPassesTestMixin, View):
     model2 = Email
     
     def get(self, request, *args, **kwargs):
-        object_id = self.request.GET.get('pk')
-        object_type = self.request.GET.get('type')
+        try:
+            object_id = self.request.GET.get('pk')
+            object_type = self.request.GET.get('type')
+        except KeyError:
+            messages.error(request, 'Oops! Something went wrong')
+            return redirect('home')
         if object_type == 'sms':
             obj = get_object_or_404(self.model1, pk=object_id)
             is_sent, response = obj.send()
@@ -180,8 +188,11 @@ class RetryView(LoginRequiredMixin, UserPassesTestMixin, View):
             return redirect('emails')
 
     def test_func(self):
-        object_id = self.request.GET.get('pk')
-        object_type = self.request.GET.get('type')
+        try:
+            object_id = self.request.GET.get('pk')
+            object_type = self.request.GET.get('type')
+        except KeyError:
+            return False
         if object_type == 'sms':
             if self.request.user == self.model1.objects.get(id=object_id).sent_by and self.request.user.can_send:
                 return True
@@ -196,8 +207,12 @@ class DownloadView(LoginRequiredMixin, UserPassesTestMixin,View):
     model = Email
 
     def get(self, request, *args, **kwargs):
-        object_id = self.request.GET.get('pk')
-        attachment_id = self.request.GET.get('file_id')
+        try:
+            object_id = self.request.GET.get('pk')
+            attachment_id = self.request.GET.get('file_id')
+        except KeyError:
+            messages.error(request, 'Oops! Something went wrong')
+            return redirect('emails')
         object = get_object_or_404(self.model, id=object_id)
         try:
             attachment = object.attachments.get(id=attachment_id)

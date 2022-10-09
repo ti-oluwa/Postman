@@ -19,22 +19,46 @@
                     <div class="purchase success">
                         <h3>{{ purchase.amount }} for ${{ purchase.price }}</h3>
                         <p class="id">{{ purchase.sid }}</p>
-                        <a class="status" style="color: hsla(120, 61%, 56%);">confirmed</a>
-                        <p class="date">{{ purchase.date_closed| timesince }} ago</p>
+                        <a href="{% url 'purchase-detail' %}?pk={{purchase.sid}}" class="status" style="color: hsla(120, 61%, 56%);">confirmed</a>
+                        <p class="date">
+                            {% with purchase.date_created|timesince as timesince %}
+                                {% if timesince < "1 minutes" %}
+                                    Just now
+                                {% else %}
+                                    {{ timesince }} ago
+                                {% endif %}
+                            {% endwith %}
+                        </p>
                     </div>
                 {% elif purchase.is_closed and not purchase.success %}
                     <div class="purchase failed">
                         <h3>{{ purchase.amount }} for ${{ purchase.price }}</h3>
                         <p class="id">{{ purchase.sid }}</p>
-                        <a class="status" style="color: hsla(0, 61%, 56%);">Closed</a>
-                        <p class="date">{{ purchase.date_closed| timesince }} ago</p>
+                        <a href="{% url 'purchase-detail' %}?pk={{purchase.sid}}" class="status" style="color: hsla(0, 61%, 56%);">Closed</a>
+                        <p class="date">
+                            {% with purchase.date_created|timesince as timesince %}
+                                {% if timesince < "1 minutes" %}
+                                    Just now
+                                {% else %}
+                                    {{ timesince }} ago
+                                {% endif %}
+                            {% endwith %}
+                        </p>
                     </div>
                 {% elif not purchase.is_closed and not purchase.success %}
                     <div class="purchase pending">
                         <h3>{{ purchase.amount }} for ${{ purchase.price }}</h3>
                         <p class="id">{{ purchase.sid }}</p>
-                        <a class="status" style="color: coral;">Pending</a>
-                        <p class="date">{{ purchase.date_created| timesince }} ago</p>
+                        <a href="{% url 'purchase-detail' %}?pk={{purchase.sid}}" class="status" style="color: coral;">Pending</a>
+                        <p class="date">
+                            {% with purchase.date_created|timesince as timesince %}
+                                {% if timesince < "1 minutes" %}
+                                    Just now
+                                {% else %}
+                                    {{ timesince }} ago
+                                {% endif %}
+                            {% endwith %}
+                        </p>
                     </div>
                 {% endif %}
             {% endfor %}

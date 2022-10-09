@@ -159,6 +159,23 @@ input[type=checkbox]{
     margin-bottom: 10px;
 }
 
+.setting .send_rate{
+    width: clamp(60px, 2vw, 100px);
+    height: clamp(24px, 2vw, 28px);
+    border: 2px hsla(120, 61%, 80%, 1) solid;
+    border-radius: 4px;
+    padding: 10px 5px;
+    font-size: clamp(12px, 2vw, 14px);
+    font-family: 'Manrope';
+    font-weight: 600;
+    color: #555;
+    text-align: center;
+}
+
+.send_rate:focus-within{
+    border-color: hsla(120, 61%, 60%, 0.8);
+}
+
 .setting h3{
     font-size: clamp(16px, 4vw, 20px);
     font-weight: 700;

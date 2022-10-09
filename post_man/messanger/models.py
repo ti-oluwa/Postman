@@ -1,8 +1,7 @@
-from genericpath import exists
-from os import remove
+from datetime import timedelta
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
-from django.utils import timezone
+from django.utils import timezone, timesince
 from users.models import CustomUser
 import telnyx, time, math, random
 from twilio.rest import Client
@@ -97,6 +96,7 @@ class TextMessage(models.Model):
         active_senders = self.sent_by.message_profiles.filter(is_active=True)
         if active_senders and active_senders != []:
             count = 0
+            start_time = timezone.now()
             # randomize the order of the active senders
             if self.sent_by.wants_random:
                 random.shuffle(active_senders)
@@ -104,7 +104,7 @@ class TextMessage(models.Model):
                 return False, 'Message already sent.'
             for receiver in receivers:
                 # allows only five messages to be sent per second
-                if count < 10:
+                if count < self.sent_by.preferred_sms_rate and timesince.timesince(start_time) < '1 minutes':
                     if self.sent_by.wants_random:
                         # further randomize the order of the active senders
                         senders = random.choices(random.choices(active_senders, k=len(active_senders)), k=(len(self.sent_to.all())*len(active_senders)))
@@ -129,9 +129,14 @@ class TextMessage(models.Model):
                         self.save()
                         return False, 'Insufficient message credits.[{} recipient(s), {} message credit(s) available] Please purchase more.'.format(len(self.sent_to.all()), math.floor(self.sent_by.message_credit))
 
-                else:
-                    time.sleep(1)
+                elif count > self.sent_by.preferred_sms_rate and timesince.timesince(start_time) < '1 minutes':
+                    # wait for the remaining time
+                    wait_time = (timedelta(minutes=1) + start_time) - timezone.now()
+                    time.sleep(wait_time.total_seconds())
+                    # reset  time and count
+                    start_time = timezone.now()
                     count = 0
+
             if not self.sent_by.wants_history:    
                 self.delete()
 
@@ -321,28 +326,38 @@ class Email(models.Model):
                 if self.is_sent:
                     return False, 'Email already sent.'
                 try:
+                    start_time = timezone.now()
+                    count = 0
                     for email in email_msgs:
-                        if self.is_html:
-                            email.content_subtype = 'html'
-                        if math.floor(self.sent_by.message_credit) >= len(self.send_to.all()) or self.sent_by.is_privileged:
-                            try:
-                                email.send()
-                                if not self.sent_by.is_privileged:
-                                    self.sent_by.message_credit -= 1
-                                receiver_ = [ EmailAddress.objects.filter(address=recipient, added_by=self.sent_by).first() for recipient in email.recipients() if EmailAddress.objects.filter(address=recipient, added_by=self.sent_by).exists() ][0]
-                                self.sent_to.add(receiver_)
-                                self.save()
-                                self.sent_by.save()
-                            except Exception as e:
-                                print(e.args)
-                                pass
+                        if count < self.sent_by.preferred_mail_rate and timesince.timesince(start_time) < '1 minutes':
+                            if self.is_html:
+                                email.content_subtype = 'html'
+                            if math.floor(self.sent_by.message_credit) >= len(self.send_to.all()) or self.sent_by.is_privileged:
+                                try:
+                                    email.send()
+                                    if not self.sent_by.is_privileged:
+                                        self.sent_by.message_credit -= 1
+                                    receiver_ = [ EmailAddress.objects.filter(address=recipient, added_by=self.sent_by).first() for recipient in email.recipients() if EmailAddress.objects.filter(address=recipient, added_by=self.sent_by).exists() ][0]
+                                    self.sent_to.add(receiver_)
+                                    self.save()
+                                    self.sent_by.save()
+                                except Exception as e:
+                                    print(e.args)
+                                    pass
 
-                        else:
-                            self.sent_by.can_send = False
-                            self.sent_by.save()
-                            self.save()
-                            return False, 'Insufficient message credits.[{} recipient(s), {} message credit(s) available] Please purchase more.'.format(len(self.sent_to.all()), math.floor(self.sent_by.message_credit))
-    
+                            else:
+                                self.sent_by.can_send = False
+                                self.sent_by.save()
+                                self.save()
+                                return False, 'Insufficient message credits.[{} recipient(s), {} message credit(s) available] Please purchase more.'.format(len(self.sent_to.all()), math.floor(self.sent_by.message_credit))
+                        elif count > self.sent_by.preferred_mail_rate and timesince.timesince(start_time) < '1 minutes':
+                            # wait for the remaining time
+                            wait_time = (timedelta(minutes=1) + start_time) - timezone.now()
+                            time.sleep(wait_time.total_seconds())
+                            # reset time and count
+                            start_time = timezone.now()
+                            count = 0
+
                     if not self.sent_by.wants_history:
                         self.delete()
 

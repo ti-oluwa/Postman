@@ -29,6 +29,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(unique=True, max_length=60)
     secret_question = models.CharField(max_length=500, verbose_name='Secret Question', null=True, blank=True, editable=False, help_text='This is a secret question that you can use to reset your password if you forget it.')
     secret_ans = models.CharField(max_length=500, verbose_name='Secret Answer', null=True, blank=True, editable=False, help_text='This is a secret answer to your secret question')
+    preferred_sms_rate = models.IntegerField(verbose_name="SMS Send Rate", default=5, null=True, blank=True)
+    preferred_mail_rate = models.IntegerField(verbose_name="Mail Send Rate", default=5, null=True, blank=True)
     date_joined = models.DateTimeField(verbose_name='date joined', auto_now_add=True)
     last_login = models.DateTimeField(verbose_name='last login', auto_now=True)
     is_admin = models.BooleanField(default=False)
@@ -156,7 +158,7 @@ class CreditPackage(models.Model):
 
 class Purchase(models.Model):
     '''Purchases'''
-    user = models.ForeignKey(CustomUser, on_delete=models.DO_NOTHING, verbose_name='made by', related_name='purchases')
+    user = models.ForeignKey(CustomUser, on_delete=models.SET_DEFAULT, default=None, null=True, verbose_name='made by', related_name='purchases')
     amount = models.IntegerField(default=0, verbose_name='Amount Purchased')
     price = models.DecimalField(max_digits=50, decimal_places=2, default=0.00, verbose_name='Price')
     credit_packages = models.ManyToManyField(CreditPackage, verbose_name='credit packages', related_name='purchases')

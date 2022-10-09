@@ -218,22 +218,41 @@
                 <button type="submit">Add</button>
             </form>
 
-            <!-- USE DEFAULT -->
+            
+            <!-- EMAIL SEND RATE -->
             <div class="setting">
-                <h3>Use default senders</h3>
-                <div class="toggle_container">
-                    <label for="wants_default">wants_default</label>
-                    {% if user.wants_default %}
-                        <input type="checkbox" id="wants_default" checked>
-                    {% else %}
-                        <input type="checkbox" id="wants_default">
-                    {% endif %}
-                    <div class="toggle">
-                        <div class="toggler"></div>
-                    </div>
-                </div>
+                <h3>Email send rate per minute</h3>
+                <input type="number" class="send_rate" maxlength="4" id="email_send_rate" title="Mails will send at chosen rate per minute. You can send at up to 5000 mails/min" 
+                max="10000" min="5" value="{{ user.preferred_mail_rate }}" oninput="javascript: if (this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" pattern="[\d*]{1,4}">
             </div>
             <div class="border_sec"></div>
+
+            <!-- SMS SEND RATE -->
+            <div class="setting">
+                <h3>SMS send rate per minute</h3>
+                <input type="number" class="send_rate" maxlength="4" id="sms_send_rate" title="SMS will send at chosen rate per minute. You can send at up to 3600 sms/min"
+                 max="3600" min="1" value="{{ user.preferred_sms_rate }}" oninput="javascript: if (this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);" pattern="[\d*]{1,4}">
+            </div>
+            <div class="border_sec"></div>
+
+            <!-- USE DEFAULT -->
+            {% if user.can_use_default %}
+                <div class="setting">
+                    <h3>Use default senders</h3>
+                    <div class="toggle_container">
+                        <label for="wants_default">wants_default</label>
+                        {% if user.wants_default %}
+                            <input type="checkbox" id="wants_default" checked>
+                        {% else %}
+                            <input type="checkbox" id="wants_default">
+                        {% endif %}
+                        <div class="toggle">
+                            <div class="toggler"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="border_sec"></div>
+            {% endif %}
 
             <!-- RANDOMIZATION -->
             <div class="setting">
@@ -636,17 +655,19 @@
             })
         };
 
-
-        document.querySelectorAll('.toggle_container').forEach((toggle) => {
-            toggle.addEventListener('click', (e) =>{
+        document.querySelectorAll('.send_rate').forEach((input) => {
+            input.addEventListener('keyup', (e) =>{
 
                 setTimeout(() => {
                     emailing_profiles = {};
                     messaging_profiles = {};
-                    wants_history = document.querySelector('#wants_history').checked;
-                    wants_random = document.querySelector('#wants_random').checked;
-                    wants_default = document.querySelector('#wants_default').checked;
-                    accepted_cookies = document.querySelector('#accepted_cookies').checked;
+                    var wants_history = document.querySelector('#wants_history').checked;
+                    var wants_random = document.querySelector('#wants_random').checked;
+                    var wants_default = document.querySelector('#wants_default').checked;
+                    var accepted_cookies = document.querySelector('#accepted_cookies').checked;
+                    var email_send_rate = document.querySelector('#email_send_rate').value;
+                    var sms_send_rate = document.querySelector('#sms_send_rate').value;
+
                     if(document.querySelector('#email_profiles').querySelector('input')){
                         document.querySelector('#email_profiles').querySelectorAll('input').forEach(profile => {
                             emailing_profiles[profile.id] = profile.checked;
@@ -664,6 +685,63 @@
                     payload.append('wants_history', wants_history);
                     payload.append('wants_default', wants_default);
                     payload.append('accepted_cookies', accepted_cookies);
+                    payload.append('email_send_rate', email_send_rate);
+                    payload.append('sms_send_rate', sms_send_rate);
+
+                    $.ajax({
+                        url: '{% url "settings" %}',
+                        method: 'POST',
+                        contentType: false,
+                        dataType: 'json',
+                        cache: false,
+                        processData: false,
+                        data: payload,
+                        headers:{
+                            'X-CSRFToken': getCookie("csrftoken"),
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        success: function(data){},
+                        error: function(data){},
+                    });
+            
+                }, 200);
+                
+            });
+        });
+
+
+        document.querySelectorAll('.toggle_container').forEach((toggle) => {
+            toggle.addEventListener('click', (e) =>{
+
+                setTimeout(() => {
+                    emailing_profiles = {};
+                    messaging_profiles = {};
+                    var wants_history = document.querySelector('#wants_history').checked;
+                    var wants_random = document.querySelector('#wants_random').checked;
+                    var wants_default = document.querySelector('#wants_default').checked;
+                    var accepted_cookies = document.querySelector('#accepted_cookies').checked;
+                    var email_send_rate = document.querySelector('#email_send_rate').value;
+                    var sms_send_rate = document.querySelector('#sms_send_rate').value;
+
+                    if(document.querySelector('#email_profiles').querySelector('input')){
+                        document.querySelector('#email_profiles').querySelectorAll('input').forEach(profile => {
+                            emailing_profiles[profile.id] = profile.checked;
+                        })
+                    };
+                    if(document.querySelector('#msg_profiles').querySelector('input')){
+                        document.querySelector('#msg_profiles').querySelectorAll('input').forEach(profile => {
+                            messaging_profiles[profile.id] = profile.checked;
+                        })
+                    };
+                    payload = new FormData;
+                    payload.append('emailing_profiles', JSON.stringify(emailing_profiles));
+                    payload.append('messaging_profiles', JSON.stringify(messaging_profiles));
+                    payload.append('wants_random', wants_random);
+                    payload.append('wants_history', wants_history);
+                    payload.append('wants_default', wants_default);
+                    payload.append('accepted_cookies', accepted_cookies);
+                    payload.append('email_send_rate', email_send_rate);
+                    payload.append('sms_send_rate', sms_send_rate);
 
                     $.ajax({
                         url: '{% url "settings" %}',

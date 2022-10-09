@@ -52,7 +52,7 @@ input, textarea{
 }
 
 input:invalid {
-    border-color: hsla(0, 61%, 70%, 0.8);
+    border-color: hsla(0, 61%, 70%, 0.8) !important;
     animation: shake 0.35s ease-in-out !important;
     animation-fill-mode: forwards;
 }

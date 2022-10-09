@@ -1,3 +1,4 @@
+from dataclasses import replace
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.http import JsonResponse, HttpResponse
@@ -48,10 +49,15 @@ class UserRegisterView(UserPassesTestMixin, View):
         return render(request, self.template_name)
 
     def post(self, request, *args, **kwargs):
-        username = self.request.POST['username']
-        password = self.request.POST['password1']
-        secret_q = self.request.POST['pass_question']
-        q_ans = self.request.POST['pass_ans']
+        try:
+            username = self.request.POST['username']
+            password = self.request.POST['password1']
+            secret_q = self.request.POST['pass_question']
+            q_ans = self.request.POST['pass_ans']
+        except KeyError:
+            messages.error(request, 'Oops! Something went wrong')
+            return redirect('register')
+
         if username.strip().lower() in password.lower():
             messages.error(request, 'Unable to complete user registration!')
             messages.info(request, "Password cannot contain your username")
@@ -83,7 +89,6 @@ class UserRegisterView(UserPassesTestMixin, View):
                     messages.info(request, "A secret question and answer must be provided")
                 return render(request, self.template_name)
             new_user.can_send = True
-            new_user.can_use_default = True
             new_user.save()
             login(request, new_user)
             messages.success(request, "Welcome {}, Your account was created successfully".format(r_form.cleaned_data.get('username')))
@@ -115,17 +120,31 @@ class ForgotPasswordView(UserPassesTestMixin, View):
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
         if is_ajax:
-            user_id = request.POST['user_id']
+            try:
+                user_id = request.POST['user_id']
+            except KeyError:
+                messages.error(request, 'Oops! Something went wrong')
+                return redirect('forgot-password')
+
             if self.model.objects.filter(user_idno=user_id).exists():
                 user = self.model.objects.get(user_idno=user_id)
-                question = str(user.secret_question).capitalize() + '?'
+                question = user.secret_question
+                replacement_words = {'i': 'you', 'my': 'your', 'me': 'you', 'am': 'are', 'mine': 'yours', 'myself': 'yourself'}
+                for word in question.split():
+                    if word.lower() in replacement_words.keys():
+                        question = question.replace(word, replacement_words[word.lower()])
+                question = str(question).capitalize() + '?'
                 return JsonResponse({'status': 'success', 'question': question}, status=200)
             else:
                 return JsonResponse({'status': 'error'}, status=200)
 
         else:
-            user_id = request.POST['user_id']
-            q_ans = request.POST['q_ans']
+            try:
+                user_id = request.POST['user_id']
+                q_ans = request.POST['q_ans']
+            except KeyError:
+                messages.error(request, 'Oops! Something went wrong')
+                return redirect('forgot-password')
             if self.model.objects.filter(user_idno=user_id, secret_ans=q_ans.strip().lower()).exists():
                 user = self.model.objects.filter(user_idno=user_id, secret_ans=q_ans.strip().lower())[0]
                 login(request, user)
@@ -145,8 +164,12 @@ class ResetPasswordView(LoginRequiredMixin, View):
         return HttpResponse('User not found', status=404)
 
     def post(self, request, *args, **kwargs):
-        password1 = request.POST['password']
-        password2 = request.POST['password2']
+        try:
+            password1 = request.POST['password']
+            password2 = request.POST['password2']
+        except KeyError:
+            messages.error(request, 'Oops! Something went wrong')
+            return redirect('forgot-password')
         user = self.get_object()
         if not user:
             return HttpResponse('User not found', status=404)
@@ -184,8 +207,12 @@ class LoginView(UserPassesTestMixin, View):
         return render(request, self.template_name)
 
     def post(self, request, *args, **kwargs):
-        username = request.POST['username']
-        password = request.POST['password']
+        try:
+            username = request.POST['username']
+            password = request.POST['password']
+        except KeyError:
+            messages.error(request, 'Oops! Something went wrong')
+            return redirect('login')
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
@@ -234,11 +261,11 @@ class AcceptOrDeclineCookie(LoginRequiredMixin, View):
         user = request.user
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         if is_ajax:
-            if request.POST['choice'] == 'accept':
+            if request.POST['choice'] and request.POST['choice'] == 'accept':
                 user.accepted_cookies = True
                 user.rejected_cookies = False
                 user.save()
-            elif request.POST['choice'] == 'decline':
+            elif request.POST['choice'] and request.POST['choice'] == 'decline':
                 user.accepted_cookies = False
                 user.rejected_cookies = True
                 user.save()
@@ -251,10 +278,10 @@ def TOSView(request, *args, **kwargs):
     if request.method == 'GET':
         user = request.user
         try:
-            if request.GET['action'] == 'accept':
+            if request.GET['action'] and request.GET['action'] == 'accept':
                 user.accepted_pp = True
                 user.save()
-            elif request.GET['action'] == 'decline':
+            elif request.GET['action'] and request.GET['action'] == 'decline':
                 user.accepted_pp = False
                 user.save()
             if timesince.timesince(user.date_joined) > '30 minutes':
@@ -288,7 +315,23 @@ class PurchaseListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
         except self.model.DoesNotExist:
             purchases = None
         return purchases
-       
+
+
+
+def GetPurchaseDetailView(request, *args, **kwargs):
+    '''Redirects user to coinbase hosted url for purchase charge'''
+    if request.method == 'GET':
+        try:
+            purchase = Purchase.objects.get(sid=request.GET['pk'])
+            if purchase.user == request.user:
+                url = "https://api.commerce.coinbase.com/charges/" + purchase.charge_id
+                headers = {"accept": "application/json"}
+                response = requests.get(url, headers=headers)
+                charge = response.json()['data']
+                return redirect(charge['hosted_url'])
+        except Purchase.DoesNotExist:
+            pass
+    return redirect('purchase-history', request.user.id)
     
 
 def process_purchase(credits, price, user_id=None, username=None):
@@ -329,8 +372,12 @@ def PurchaseView(request, *args, **kwargs):
         except CustomUser.DoesNotExist:
             messages.error(request, 'Invalid request: User not found!')
             return JsonResponse({'status': 'error'}, status=200)
-        payload = json.loads(request.POST['payload'])
-        action = request.POST['action']
+        try:
+            payload = json.loads(request.POST['payload'])
+            action = request.POST['action']
+        except KeyError:
+            messages.error(request, 'Oops! Something went wrong')
+            return JsonResponse({'status': 'error'}, status=200)
         total_price = 0
         total_amount = 0
         packages_= []
@@ -373,8 +420,13 @@ def PurchaseView(request, *args, **kwargs):
                 return JsonResponse({'status': 'error'}, status=200)
 
     elif request.method == 'GET':
-        action= request.GET.get('action')
-        purchase_id = request.GET.get('purchase_id')
+        try:
+            action= request.GET.get('action')
+            purchase_id = request.GET.get('purchase_id')
+        except KeyError:
+            messages.error(request, 'Oops! Something went wrong')
+            return redirect('settings')
+
         if action == 'cancel':
             try:
                 purchase = Purchase.objects.get(sid=purchase_id)
@@ -646,18 +698,28 @@ class SettingsView(LoginRequiredMixin, UserPassesTestMixin, View):
         email_pattern = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}$')
         if is_ajax:
             payload = request.POST
-            emailing_profiles = json.loads(payload['emailing_profiles'])
-            messaging_profiles = json.loads(payload['messaging_profiles'])
-            wants_random = json.loads(payload['wants_random'])
-            wants_history = json.loads(payload['wants_history'])
-            wants_default = json.loads(payload['wants_default'])
-            accepted_cookies = json.loads(payload['accepted_cookies'])
+            try:
+                emailing_profiles = json.loads(payload['emailing_profiles'])
+                messaging_profiles = json.loads(payload['messaging_profiles'])
+                wants_random = json.loads(payload['wants_random'])
+                wants_history = json.loads(payload['wants_history'])
+                wants_default = json.loads(payload['wants_default'])
+                accepted_cookies = json.loads(payload['accepted_cookies'])
+                sms_send_rate = int(json.loads(payload['sms_send_rate']))
+                mail_send_rate = int(json.loads(payload['email_send_rate']))
+            except KeyError:
+                messages.error(request, 'Oops! Something went wrong')
+                return JsonResponse({'success': 'error'}, status=200)
 
             #apply settings
             user.wants_random = wants_random
             user.wants_history = wants_history
             user.wants_default = wants_default
             user.accepted_cookies = accepted_cookies
+            if sms_send_rate >= 3 and sms_send_rate <= 3600:
+                user.preferred_sms_rate = sms_send_rate
+            if mail_send_rate >= 5 and mail_send_rate <= 5000:
+                user.preferred_mail_rate = mail_send_rate
             user.save()
 
             for profile_name, is_active in emailing_profiles.items():

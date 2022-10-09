@@ -34,9 +34,32 @@ p:last-child {
     margin-top: 20px;
 }
 
-.header{
+h4{
+    font-weight: 600;
+    color: #555;
 }
-.container .agreement {
+
+h3{
+    font-family: 'Manrope';
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #444;
+}
+
+ul{
+    list-style: none;
+}
+
+li{
+    margin-bottom: 10px;
+}
+
+strong{
+    font-weight: 600;
+    color: #444;
+}
+
+.sub_header {
     font-family: "Manrope";
     font-style: normal;
     font-weight: 700;
@@ -44,7 +67,7 @@ p:last-child {
     color: #2f2f2f;
     margin-bottom: 15px;
 }
-.container .terms {
+.terms {
     font-family: "DM Sans";
     font-style: normal;
     font-weight: 700;
@@ -53,6 +76,11 @@ p:last-child {
     margin-bottom: 15px;
     line-height: 40px;
 }
+
+.terms :not(:first-child) {
+    margin-top: 50px !important;
+}
+
 .main {
     font-family: "Manrope";
     font-style: normal;
@@ -79,7 +107,9 @@ p:last-child {
 
 ol li {
     list-style-position: inside;
-    color: #555;
+    color: #2f2f2f;
+    margin-bottom: 10px;
+    font-weight: 600;
 }
 .accept {
     font-family: "Manrope";

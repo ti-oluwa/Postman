@@ -43,7 +43,7 @@
             </div>
             <div class="form_field">
                 <label for="pass_ans">Answer to Secret Question</label>
-                <input type="text" title="Answer the question above" name="pass_ans" id="pass_ans" placeholder="Answer the question above" required disabled>
+                <input type="text" title="Answer the question above" name="pass_ans" id="pass_ans" placeholder="Answer the question above" required style="pointer-events: 'none';">
                 <p class="help_text">Give an answer to your secret question</p>
             </div>
             <button type="submit" id="login_btn" >Register</button>
@@ -106,9 +106,9 @@
 
             r_form.addEventListener('pointerover', () => {
                 if (pass_question.value != ''){
-                    pass_ans.disabled = false;
+                    pass_ans.style.pointerEvents = 'auto';
                 }else{
-                    pass_ans.disabled = true;
+                    pass_ans.style.pointerEvents = 'none';
                 };
             });
 
