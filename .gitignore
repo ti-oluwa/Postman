@@ -27,3 +27,6 @@ $RECYCLE.BIN/
 # exclude attachments
 attachments/
 
+
+#exclude migrations
+*/migrations/*
