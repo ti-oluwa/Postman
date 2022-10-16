@@ -218,8 +218,11 @@ class LoginView(UserPassesTestMixin, View):
             login(request, user)
             if request.session.test_cookie_worked():
                 print('Can use cookie')
-            if request.GET['next']:
-                return redirect(request.GET['next'])
+            try:
+                if request.GET['next']:
+                    return redirect(request.GET['next'])
+            except KeyError:
+               pass
             return redirect('home')
         else:
             messages.error(request, "Invalid username or password")

@@ -50,7 +50,7 @@ ul{
     list-style: none;
 }
 
-li{
+li:not(.menu li){
     margin-bottom: 10px;
 }
 

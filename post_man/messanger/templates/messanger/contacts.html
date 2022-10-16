@@ -26,8 +26,8 @@
                 {% for contact in phone_contacts %}
                     <!--  CONTACT -->
                     <div class="contact">
-                        <input type="checkbox" name="number" id="{{ contact.id }}">
-                        <label for="{{ contact.id }}" class="contact_detail">{{ contact.number }}</label>
+                        <input type="checkbox" name="number" id="phone-{{ contact.id }}">
+                        <label for="phone-{{ contact.id }}" class="contact_detail">{{ contact.number }}</label>
                         <div class="edit_contact_detail">
                             <input type="text" title="Edit number and save" pattern="^\+(?:[0-9] ?){10,14}[0-9]$" value="{{ contact.number }}">
                             <p class="ok" id="save_edit">Save</p>
@@ -71,8 +71,8 @@
                 {% for contact in email_contacts %}
                     <!--  CONTACT -->
                     <div class="contact">
-                        <input type="checkbox" name="email" id="{{ contact.id }}">
-                        <label for="{{ contact.id }}" class="contact_detail">{{ contact.address }}</label>
+                        <input type="checkbox" name="email" id="email-{{ contact.id }}">
+                        <label for="email-{{ contact.id }}" class="contact_detail">{{ contact.address }}</label>
                         <div class="edit_contact_detail">
                             <input type="text" title="Edit address and save" pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}$" value="{{ contact.address }}">
                             <p class="ok" id="save_edit">Save</p>
@@ -461,7 +461,7 @@
                         save_btn.addEventListener('click', (e)=>{
                             e.stopImmediatePropagation();
                             payload = {};
-                            payload['contact_id'] = contact_id;
+                            payload['contact_id'] = contact_id.split('-')[1];
                             payload['new_value'] = new_contact_detail.value;
                             payload['object_type'] = contact_item.id;
 
@@ -498,7 +498,7 @@
                 var contact_ids = [];
                 contacts.forEach(contact => {
                     if (contact.querySelector('input[type=checkbox]').checked){
-                        contact_ids.push(contact.querySelector('input[type=checkbox]').id);
+                        contact_ids.push(contact.querySelector('input[type=checkbox]').id.split('-')[1]);
                     }
                 });
                 payload = {};

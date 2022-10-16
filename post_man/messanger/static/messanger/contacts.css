@@ -21,7 +21,7 @@ body{
 }
 
 .contacts{
-    min-height: 80vh;
+    min-height: 70vh;
     margin-top: clamp(102px, 2vw, 122px);
     margin-bottom: 40px;
     display: flex;
@@ -73,12 +73,13 @@ body{
 .wrapper{
     position: relative;
     width: 100%;
-    height: 500px;
+    height: 550px;
     background-color: #f6f6f6;
     padding: 20px clamp(20px, 2vw, 40px);
     display: flex;
     justify-content: center;
     align-items: center;
+    border-radius: 8px;
 }
 
 .contact_items{
