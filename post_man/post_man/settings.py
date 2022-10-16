@@ -191,7 +191,7 @@ EMAIL_USE_TLS = True
 
 SERVER_EMAIL = account['auth_user']
 
-ADMINS = ['tholuwarlarshe2003@gmail.com']
+ADMINS = [('Tolu', 'tholuwarlarshe2003@gmail.com'),]
 
 MANAGERS = [ admin for admin in ADMINS ]
 
@@ -200,3 +200,5 @@ COINBASE_COMMERCE_API_KEY = config.get('COINBASE_COMMERCE_API_KEY', '')
 COINBASE_COMMERCE_WEBHOOK_SHARED_SECRET = config.get('COINBASE_COMMERCE_WEBHOOK_SHARED_SECRET', '')
 
 POSTMAN_DOMAIN_URL = 'https://127.0.0.1:8000'
+
+POSTMAN_SUPPORT_EMAIL = 'sendviapostman@gmail.com'

@@ -14,6 +14,7 @@ from django.contrib.auth.hashers import make_password
 
 
 
+
 with open(settings.STATIC_ROOT + '/images/accounts.json', 'r') as f:
     account = json.load(f)[0]
 
@@ -44,7 +45,8 @@ def handle_server_error(sender, request, **kwargs):
             connection.send_messages([email])
     except Exception as e:
         print(e)
-    print("exception error")
+        print("exception error")
+        pass
 
 
         
@@ -69,7 +71,16 @@ def send_mail_on_new_user(sender, instance, created, **kwargs):
                 connection.send_messages([email])
         except Exception as e:
             print(e)
-        print("exception error")
+            print("exception error")
+            pass
+
+    if instance.user_idno == None:
+        user_idno = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=10))     
+        if CustomUser.objects.filter(user_idno=user_idno).exists():
+            user_idno = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=10))
+        else:
+            instance.user_idno = user_idno
+        instance.save()
 
 
 
@@ -91,7 +102,8 @@ def send_mail_on_user_deletion(sender, instance, **kwargs):
             connection.send_messages([email])
     except Exception as e:
         print(e)
-    print("exception error")
+        print("exception error")
+        pass
 
 # check if default user is created or create
 @receiver(post_init, sender=Email)
@@ -111,15 +123,16 @@ def create_default_if_not_exist(sender, instance, **kwargs):
         default_user.save()
 
 
-# update user id no on user creation
-@receiver(pre_save, sender=CustomUser)
-def set_user_id(sender, instance, **kwargs):
-    if instance.user_idno == None:
-        user_idno = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=10))     
-        if CustomUser.objects.filter(user_idno=user_idno).exists():
-            user_idno = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=10))
-        else:
-            instance.user_idno = user_idno
+# # update user id no on user creation
+# @receiver(post_save, sender=CustomUser)
+# def set_user_id(sender, created, instance, **kwargs):
+#     if created or not instance.user_idno:
+#         user_idno = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=10))     
+#         if CustomUser.objects.filter(user_idno=user_idno).exists():
+#             user_idno = ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=10))
+#         else:
+#             instance.user_idno = user_idno
+#         instance.save()
 
 
 # update purchase sid on new purchase creation

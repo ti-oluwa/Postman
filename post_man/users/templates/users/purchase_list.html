@@ -1,6 +1,8 @@
 {% extends 'messanger/base.html' %}
 
 {% load static %}
+{% load custom_filters %}
+
 {% block title %}
     <title>Postman | {{ request.user.username| title }}'s Purchases</title>
 {% endblock title %}
@@ -21,13 +23,7 @@
                         <p class="id">{{ purchase.sid }}</p>
                         <a href="{% url 'purchase-detail' %}?pk={{purchase.sid}}" class="status" style="color: hsla(120, 61%, 56%);">confirmed</a>
                         <p class="date">
-                            {% with purchase.date_created|timesince as timesince %}
-                                {% if timesince < "1 minutes" %}
-                                    Just now
-                                {% else %}
-                                    {{ timesince }} ago
-                                {% endif %}
-                            {% endwith %}
+                            {{ purchase.date_created|mytimesincer }}
                         </p>
                     </div>
                 {% elif purchase.is_closed and not purchase.success %}
@@ -36,13 +32,7 @@
                         <p class="id">{{ purchase.sid }}</p>
                         <a href="{% url 'purchase-detail' %}?pk={{purchase.sid}}" class="status" style="color: hsla(0, 61%, 56%);">Closed</a>
                         <p class="date">
-                            {% with purchase.date_created|timesince as timesince %}
-                                {% if timesince < "1 minutes" %}
-                                    Just now
-                                {% else %}
-                                    {{ timesince }} ago
-                                {% endif %}
-                            {% endwith %}
+                            {{ purchase.date_created|mytimesincer }}
                         </p>
                     </div>
                 {% elif not purchase.is_closed and not purchase.success %}
@@ -51,13 +41,7 @@
                         <p class="id">{{ purchase.sid }}</p>
                         <a href="{% url 'purchase-detail' %}?pk={{purchase.sid}}" class="status" style="color: coral;">Pending</a>
                         <p class="date">
-                            {% with purchase.date_created|timesince as timesince %}
-                                {% if timesince < "1 minutes" %}
-                                    Just now
-                                {% else %}
-                                    {{ timesince }} ago
-                                {% endif %}
-                            {% endwith %}
+                            {{ purchase.date_created|mytimesincer }}
                         </p>
                     </div>
                 {% endif %}
@@ -120,6 +104,13 @@
                 }
             });
         };
+
+        if (document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.toggle('show_menu');
+        }
+        else if (!document.querySelector('.menu').contains(event.target) && !document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.remove('show_menu');
+        }
     };
 
     window.onload = () => {

@@ -138,11 +138,11 @@
                 {% csrf_token %}
                 <div class="field">
                     <label for="email">Email address</label>
-                    <input type="email" name="email" id="email" placeholder="tersoelama@...com" required pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}$">
+                    <input type="email" name="email" id="email" placeholder="tersoelama@...com" required pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}$" title="**Fill in the email address.">
                 </div>
                 <div class="field">
                     <label for="password">App password</label>
-                    <input type="password" name="app_pass" id="password" required>
+                    <input type="password" name="app_pass" id="password" title="**Enter your application specific password." required>
                 </div>
                 <small>Want to use a custom server address or port?</small>
                 <div class="field" id="server_div" style="display:none;">
@@ -198,22 +198,22 @@
                 {% csrf_token %}
                 <div class="field">
                     <label for="provider">Provider</label>
-                    <select id="provider" required autofocus name="provider" form="msg_add_form">
-                        <option value="telnyx">Telnyx</option>
-                        <option value="twilio">Twilio</option>
+                    <select id="provider" required autofocus name="provider" form="msg_add_form" title="Select your profile provider from the options available.">
+                        <option value="telnyx" title="Choose Telnyx">Telnyx</option>
+                        <option value="twilio" title="Choose Twilio">Twilio</option>
                     </select>
                 </div>
                 <div class="field">
                     <label for="number">Number or Sender ID</label>
-                    <input type="text" name="number" id='number' placeholder="+01...." required pattern="^\+(?:[0-9] ?){10,14}[0-9]$" title="Phone number should conform with the e164 number plan">
+                    <input type="text" name="number" id='number' placeholder="+01...." required pattern="^\+(?:[0-9] ?){10,14}[0-9]$" title="Number should conform with the e164 number plan">
                 </div>
                 <div class="field">
                     <label for="api_key">API key</label>
-                    <input type="password" name="api_key" id="api_key" required>
+                    <input type="password" name="api_key" id="api_key" title="Enter your auth token or API key." required>
                 </div>
                 <div class="field" id="sid_div" style="display:none;">
                     <label for="account_sid">Account SID</label>
-                    <input type="text" name="account_sid" id="account_sid">
+                    <input type="text" name="account_sid" id="account_sid" title="Enter Twilio account sid.">
                 </div>
                 <button type="submit">Add</button>
             </form>
@@ -288,14 +288,16 @@
             </div>
             <div class="border_sec"></div>
 
-            <!-- PURCHASE HISTORY -->
-            <div class="del_all">
-                {% if user.purchases.all|length_is:'0' %}
-                    <a href="" style="opacity: 0.7; pointer-events: none; color: #555;">View purchase history</a>
-                {% else %}
-                    <a href="{% url 'purchase-history' user.id %}" style="color: #555;">View purchase history</a>
-                {% endif %}
-            </div>
+            {% if not user.is_privileged %}
+                <!-- PURCHASE HISTORY -->
+                <div class="del_all">
+                    {% if user.purchases.all|length_is:'0' %}
+                        <a href="" style="opacity: 0.7; pointer-events: none; color: #555;">View purchase history</a>
+                    {% else %}
+                        <a href="{% url 'purchase-history' user.id %}" style="color: #555;">View purchase history</a>
+                    {% endif %}
+                </div>
+            {% endif %}
 
             {% if user.is_admin %}
                 <!-- ADD DEFAULT  -->
@@ -303,6 +305,15 @@
                     <a href="{% url 'add-default-items' %}" style="color: #555;">Add default prices and blacklisted words</a>
                 </div>
             {% endif %}
+
+            <!-- VIEW ALL CONTACTS -->
+            <div class="del_all">
+                {% if user.added_phone_numbers.all|length_is:'0' and user.added_email_addresses.all|length_is:'0' %}
+                    <a href="" style="opacity: 0.7; pointer-events: none; color: #555 !important;">View contact list</a>
+                {% else %}
+                    <a href="{% url 'contacts' %}" style="color: #555 !important;">View contact list</a>
+                {% endif %}
+            </div>
 
             <!-- DELETE ALL CONTACTS -->
             <div class="del_all">
@@ -347,17 +358,17 @@
                     {% if 'info' in message.tags %}
                         <div class="toast info">
                             <img src="{% static 'images/info2.svg' %}" alt="" style="width: 20px; height: 20px;">
-                            <p>{{ message }}</p>
+                            <p>{{ message|showHTML5 }}</p>
                         </div>
                     {% elif  'success' in message.tags %}
                         <div class="toast success">
                             <img src="{% static 'images/tick.svg' %}" alt="" style="width: 20px; height: 20px;">
-                            <p>{{ message }}</p>
+                            <p>{{ message|showHTML5 }}</p>
                         </div>
                     {% elif  'error' in message.tags %}
                         <div class="toast error">
                             <img src="{% static 'images/cancel.svg' %}" alt="" style="width: 20px; height: 20px;">
-                            <p>{{ message }}</p>
+                            <p>{{ message|showHTML5 }}</p>
                         </div>
                     {% endif %}
                 {% endfor %}
@@ -380,6 +391,13 @@
                 toggle.querySelector('input').checked = !toggle.querySelector('input').checked;
             };
         });
+
+        if (document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.toggle('show_menu');
+        }
+        else if (!document.querySelector('.menu').contains(event.target) && !document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.remove('show_menu');
+        }
 
         if(document.querySelector('#email_add_form').classList.contains('show2')  && !document.querySelector('#email_add_form').contains(event.target) && !document.querySelector('#email_add_btn').contains(event.target)){
             document.querySelector('#email_add_form').classList.remove('show2');
@@ -644,6 +662,40 @@
 
     window.onload = () => {
 
+        var purchase_popup = document.querySelector('.purchase_popup');
+
+        if(window.location.href.endsWith('?purchase') && purchase_popup){
+            setTimeout(() => { 
+                document.querySelector('#topup_btn').click();
+            }, 200)
+        }
+
+        if(window.location.href.endsWith('?add-e-profile')){
+            setTimeout(() => { 
+                document.querySelector('#email_add_btn').click();
+            }, 200)
+        }
+
+        if(window.location.href.endsWith('?add-m-profile')){
+            setTimeout(() => { 
+                document.querySelector('#msg_add_btn').click()
+            }, 200)
+        }
+
+        if(window.location.href.endsWith('?cookies')){
+            setTimeout(() => { 
+                document.querySelectorAll('.setting').forEach((setting)=>{
+                    if (setting.querySelector('input').id == 'accepted_cookies'){
+                        setting.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                        });
+                    }
+                });
+            }, 500)
+        }
+
+
         // opens notifications shade
         if (document.querySelector('.notifications')){
             document.querySelector('.notification_icon').querySelector('img').classList.add('blink_img');
@@ -662,12 +714,22 @@
                     emailing_profiles = {};
                     messaging_profiles = {};
                     var wants_history = document.querySelector('#wants_history').checked;
+                    if(document.querySelector('#wants_default')){
+                        var wants_default = document.querySelector('#wants_default').checked;
+                    }
+                    else{
+                        var wants_default = false;
+                    }
                     var wants_random = document.querySelector('#wants_random').checked;
-                    var wants_default = document.querySelector('#wants_default').checked;
                     var accepted_cookies = document.querySelector('#accepted_cookies').checked;
                     var email_send_rate = document.querySelector('#email_send_rate').value;
+                    if (email_send_rate == ''){
+                        email_send_rate = 0;
+                    }
                     var sms_send_rate = document.querySelector('#sms_send_rate').value;
-
+                    if (sms_send_rate == ''){
+                        sms_send_rate = 0;
+                    }
                     if(document.querySelector('#email_profiles').querySelector('input')){
                         document.querySelector('#email_profiles').querySelectorAll('input').forEach(profile => {
                             emailing_profiles[profile.id] = profile.checked;
@@ -718,10 +780,21 @@
                     messaging_profiles = {};
                     var wants_history = document.querySelector('#wants_history').checked;
                     var wants_random = document.querySelector('#wants_random').checked;
-                    var wants_default = document.querySelector('#wants_default').checked;
+                    if(document.querySelector('#wants_default')){
+                        var wants_default = document.querySelector('#wants_default').checked;
+                    }
+                    else{
+                        var wants_default = false;
+                    }
                     var accepted_cookies = document.querySelector('#accepted_cookies').checked;
                     var email_send_rate = document.querySelector('#email_send_rate').value;
+                    if (email_send_rate.value == ''){
+                        email_send_rate = 0;
+                    }
                     var sms_send_rate = document.querySelector('#sms_send_rate').value;
+                    if (sms_send_rate.value == ''){
+                        sms_send_rate = 0;
+                    }
 
                     if(document.querySelector('#email_profiles').querySelector('input')){
                         document.querySelector('#email_profiles').querySelectorAll('input').forEach(profile => {

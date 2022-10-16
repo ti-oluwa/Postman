@@ -22,7 +22,6 @@ class CustomUserManager(BaseUserManager):
         )
         user.secret_question = secret_question
         user.secret_ans = secret_ans
-        user.can_send = True
         user.set_password(password)
         user.save(using=self._db)
         return user

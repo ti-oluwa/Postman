@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib import messages
 from django.views.generic import ListView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -155,6 +156,51 @@ class DeleteAllContactsView(LoginRequiredMixin, UserPassesTestMixin, View):
         return redirect('settings')
 
 
+class EditDraftAjaxView(LoginRequiredMixin, UserPassesTestMixin, View):
+    '''View for editing drafted messages'''
+    def test_func(self):
+        if self.request.user.is_active and ( TextMessage.objects.filter(id=self.request.POST['draft_id'], sent_by=self.request.user).exists() or Email.objects.filter(id=self.request.POST['draft_id'], sent_by=self.request.user).exists() ):
+            return True
+        return False
+
+    def post(self, request, *args, **kwargs):
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        response = {}
+        if is_ajax:
+            draft_id = request.POST['draft_id']
+            object_type = request.POST['object_type']
+            if object_type == 'sms':
+                try:
+                    draft = TextMessage.objects.get(id=draft_id)
+                    response['data'] = {
+                        'message': draft.message,
+                    }
+                    response['success'] = 'true'
+                    request.session.set_test_cookie()
+                    request.session['last_edit_request_sms_draft_id'] = draft_id
+
+                except Exception as e:
+                    response['success'] = 'false'
+                    response['error'] = e
+            elif object_type == 'email':
+                try:
+                    draft = Email.objects.get(id=draft_id)
+                    response['data'] = {
+                        'message': draft.body,
+                        'subject': draft.subject,
+                        'bcc': draft.bcc,
+                        'cc': draft.cc,
+                    }
+                    response['success'] = 'true'
+                    request.session.set_test_cookie()
+                    request.session['last_edit_request_email_draft_id'] = draft_id
+
+                except Exception as e:
+                    response['success'] = 'false'
+                    response['error'] = e
+            return JsonResponse(data=response, status=200)
+
+        return JsonResponse(status=400)
 
 
 
@@ -194,11 +240,11 @@ class RetryView(LoginRequiredMixin, UserPassesTestMixin, View):
         except KeyError:
             return False
         if object_type == 'sms':
-            if self.request.user == self.model1.objects.get(id=object_id).sent_by and self.request.user.can_send:
+            if self.request.user == self.model1.objects.get(id=object_id).sent_by:
                 return True
             return False
         elif object_type == 'email':
-            if self.request.user == self.model2.objects.get(id=object_id).sent_by and self.request.user.can_send:
+            if self.request.user == self.model2.objects.get(id=object_id).sent_by:
                 return True
             return False
 
@@ -248,10 +294,12 @@ class AjaxView(LoginRequiredMixin, View):
     '''Handles ajax requests for sending emails and sms'''
     feedback = {'messages': []}
     feedback_ready = False
+    
 
     def post(self, request, *args, **kwargs):
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-        
+        settings_url = reverse('settings')
+
         if is_ajax:
             payload, files = json.loads(request.POST['payload']), request.FILES
             try:
@@ -283,7 +331,7 @@ class AjaxView(LoginRequiredMixin, View):
                     elif action == 'send_email': 
                         lines += re.split(r"[\s,;']", contact_file.read().decode('utf-8'))
 
-                    if contact_file.name.endswith('.txt')==False and contact_file.name.endswith('.csv')==False:
+                    if contact_file.name.split('.').pop() not in ['txt', 'csv']:
                         messages.error(request, 'Invalid file format')
                         return JsonResponse(data={'success':'false',}, status=200)
 
@@ -355,7 +403,7 @@ class AjaxView(LoginRequiredMixin, View):
 
                 if len(already_exists) > 0 and len(already_exists) < 4:
                     self.feedback['messages'].append(f'{", ".join(already_exists)} already exists')
-                    messages.info(request, f'{", ".join(len(already_exists))} already exists')
+                    messages.info(request, f'{", ".join(already_exists)} already exists')
 
                 elif len(already_exists) > 0 and len(already_exists) >= 4:
                     messages.info(request, f'{len(already_exists)} phone numbers already exists')
@@ -412,12 +460,113 @@ class AjaxView(LoginRequiredMixin, View):
                             new_message.delete()
                         messages.error(request, response)
                         
-                    time.sleep(2)
                     return JsonResponse(data={'success':'true',}, status=200)
                 elif len(receivers) == 0:
-                    time.sleep(1)
+                    return JsonResponse(data={'success':'false',}, status=200)
+
+
+            # for sms drafts
+            if action == 'save_message_draft':
+                if files and lines != []:
+                    for line in lines:
+                        for phone_number in phone_number_pattern.findall(line):
+                            if PhoneNumber.objects.filter(number=phone_number, added_by=request.user).exists():
+                                already_exists.add(phone_number)
+                                receivers.add(phone_number)
+                            else:
+                                registered_number = PhoneNumber.objects.create(number=phone_number, added_by=request.user)
+                                registered_number.save()
+                                new_contacts += 1
+                                receivers.add(registered_number.number)
+
+                if len(receivers) == 0 and 'file' in files.keys():
+                    messages.error(request, 'No phone number found in file')
+                elif len(receivers) > 0 and files:
+                    if len(receivers) > 1:
+                        messages.info(request, f'{len(receivers)} phone numbers found in {contact_file.name}')
+                    else:
+                        messages.info(request, f'{len(receivers)} phone number found in {contact_file.name}')
+                
+                if add_form['phone_numbers'] != '':
+                    for phone_number in add_form['phone_numbers'].split(','):
+                        if PhoneNumber.objects.filter(number=phone_number, added_by=request.user).exists():
+                            already_exists.add(phone_number)
+                            receivers.add(phone_number)
+                        else:
+                            registered_number = PhoneNumber.objects.create(number=phone_number, added_by=request.user)
+                            registered_number.save()
+                            new_contacts += 1
+                            receivers.add(registered_number.number)
+                if new_contacts > 0:
+                    if new_contacts > 1:
+                        messages.success(request, f'{new_contacts} new phone numbers added')
+                    else:
+                        messages.success(request, f'{new_contacts} new phone number added')
+
+                if len(already_exists) > 0 and len(already_exists) < 4:
+                    self.feedback['messages'].append(f'{", ".join(already_exists)} already exists')
+                    messages.info(request, f'{", ".join(already_exists)} already exists')
+
+                elif len(already_exists) > 0 and len(already_exists) >= 4:
+                    messages.info(request, f'{len(already_exists)} phone numbers already exists')
+                
+                if select_form['all_contacts'] == 'true':
+                    rec = [phone_number for phone_number in PhoneNumber.objects.filter(added_by=request.user)]
+                    for phone_number in rec:
+                        receivers.add(phone_number.number)
+
+                elif select_form['selected_contacts'] != [] and select_form['all_contacts'] != 'true':
+                    rec = [phone_number for phone_number in PhoneNumber.objects.filter(number__in=select_form['selected_contacts'])]
+                    for phone_number in rec:
+                        receivers.add(phone_number.number)
+
+                # get all phone numbers object in receivers set
+                receivers = [ PhoneNumber.objects.filter(number=receiver, added_by=request.user).first() for receiver in receivers ]
+
+
+                if message_form['message'] and len(receivers) > 0:
+                    message = message_form['message']
+                    if len(message) > 160:
+                        messages.error(request, 'Failed to send message: SMS should not exceed 160 characters')
+                        return JsonResponse(data={'success':'false',}, status=400)
+                    message_list = re.split(r"[\s,.;\-\?\!\(\)\:~'\[\]\{\}&_@#\*\^\>\<]", message.lower())
+                    black_listed_words = [bad_word.word.lower() for bad_word in BlackListedWord.objects.all()]
+                    bad_words = [word for word in message_list if word.lower() in black_listed_words]
+                    if bad_words != []:
+                        if len(bad_words) == 1:
+                            messages.error(request, f'Failed to send message: {", ".join(bad_words)} is not allowed in message')
+                        else:
+                            messages.error(request, f'Failed to send message: {", ".join(bad_words)} are not allowed in message')
+                        return JsonResponse(data={'success':'false',}, status=200)
+                    # create a new message object
+                    new_message = TextMessage.objects.create(message=message, sent_by=request.user)
+                    new_message.is_draft = True
+                    new_message.save()
+                    # add all receivers to the message object
+                    for receiver in receivers:
+                        new_message.send_to.add(receiver)
+                    new_message.save()
+                    messages.success(request, 'Message saved as draft')
+                    return JsonResponse(data={'success':'true',}, status=200)
+
+                elif len(receivers) == 0:
+                    message = message_form['message']
+                    if request.session.test_cookie_worked() and request.user.accepted_cookies and request.session['last_edit_request_sms_draft_id']:
+                        if TextMessage.objects.filter(sent_by=request.user, is_draft=True, id=request.session['last_edit_request_sms_draft_id']).exists():
+                            draft = TextMessage.objects.filter(sent_by=request.user, is_draft=True, id=request.session['last_edit_request_sms_draft_id']).first()
+                            draft.message = message
+                            draft.save()
+                            request.session['last_save_request_sms_draft_id'] = draft.id
+                            messages.success(request, 'Draft updated')
+                    elif not request.session.test_cookie_worked():
+                        messages.error(request, 'Failed to save draft: Session expired. Please try enabling browser cookies and reload the page')
+                    elif not request.user.accepted_cookies:
+                        messages.error(request, "Failed to save draft: Please accept cookies. View <a href='{}?cookies'>settings</a> to accept cookies".format(settings_url))
+                    else:
+                        messages.error(request, 'No phone number found')
                     return JsonResponse(data={'success':'false',}, status=200)
         
+
             # for emails
             elif action == 'send_email':
                 if files and lines != []:
@@ -516,7 +665,7 @@ class AjaxView(LoginRequiredMixin, View):
                         attachment = Attachment.objects.create(file=file, added_by=request.user)
                         attachment.save()
                         new_email.attachments.add(attachment)
-                        new_email.save()
+                    new_email.save()
                     # send mail to list of receivers and awaits response
                     is_sent, response= new_email.send(receivers)
                     if is_sent:
@@ -538,14 +687,152 @@ class AjaxView(LoginRequiredMixin, View):
                             new_email.delete()
                         messages.error(request, response)
                         
-                    time.sleep(2)
                     return JsonResponse(data={'success':'true',}, status=200)
                 elif len(receivers) == 0:
-                    time.sleep(1)
+                    return JsonResponse(data={'success':'false',}, status=200)
+            
+            # for email drafts
+            elif action == 'save_email_draft':
+                if files and lines != []:
+                    for line in lines:
+                        for email_address in email_pattern.findall(line):
+                            if EmailAddress.objects.filter(address=email_address, added_by=request.user).exists():
+                                already_exists.add(email_address)
+                                receivers.add(email_address)
+                            else:
+                                registered_address = EmailAddress.objects.create(address=email_address, added_by=request.user)
+                                registered_address.save()
+                                new_contacts += 1
+                                receivers.add(registered_address.address)
+
+                if len(receivers) == 0 and 'file' in files.keys():
+                    messages.error(request, 'No email address found in file')
+                elif len(receivers) > 0 and files:
+                    if len(receivers) > 1:
+                        messages.info(request, f'{len(receivers)} email addresses found in {contact_file.name}')
+                    else:
+                        messages.info(request, f'{len(receivers)} email address found in {contact_file.name}')
+
+                    
+                if add_form['email_addresses'] != '':
+                    for email_address in add_form['email_addresses'].split(','):
+                        if EmailAddress.objects.filter(address=email_address, added_by=request.user).exists():
+                            already_exists.add(email_address)
+                            receivers.add(email_address)
+                        else:
+                            registered_address = EmailAddress.objects.create(address=email_address, added_by=request.user)
+                            registered_address.save()
+                            new_contacts += 1
+                            receivers.add(registered_address.address)
+                
+                if new_contacts > 0:
+                    if new_contacts > 1:
+                        messages.success(request, f'{new_contacts} new email addresses added')
+                    else:
+                        messages.success(request, f'{new_contacts} new email address added')
+
+                if len(already_exists) > 0 and len(already_exists) < 4:
+                    messages.info(request, f'{", ".join(list(already_exists))} already exists')
+
+                elif len(already_exists) > 0 and len(already_exists) >= 4:
+                    messages.info(request, f'{len(already_exists)} email addresses already exists')
+                
+
+                if select_form['all_addresses'] == 'true':
+                    rec = [email_address for email_address in EmailAddress.objects.all()]
+                    for email in rec:
+                        receivers.add(email.address)
+
+                elif select_form['selected_addresses'] != [] and select_form['all_addresses'] != 'true':
+                    rec = [email_address for email_address in EmailAddress.objects.filter(address__in=select_form['selected_addresses'])]
+                    for email in rec:
+                        receivers.add(email.address)
+
+                # get all email address object in receivers set
+                receivers = [ EmailAddress.objects.filter(address=receiver, added_by=request.user).first() for receiver in receivers ]
+
+                if message_form and len(receivers) > 0:
+                    if message_form['subject'] != '':
+                        subject = message_form['subject'].title()
+                    else:
+                        subject = 'No Subject'
+                    if message_form['bcc'] != '':
+                        bcc = message_form['bcc']
+                    else:
+                        bcc = None
+                    if message_form['cc'] != '':
+                        cc = message_form['cc']
+                    else:
+                        cc = None
+                    body = message_form['body']
+                    if len(body) > 4500:
+                        messages.error(request, 'Failed to save mail: Mail body should not exceed 4500 characters')
+                        return JsonResponse(data={'success':'false',}, status=400)
+                    message_list = re.split(r"[\s,.;\-\?\!\(\)\:~'\[\]\{\}&_@#\*\^\>\<]", body.lower())
+                    black_listed_words = [bad_word.word.lower() for bad_word in BlackListedWord.objects.all()]
+                    bad_words = [word for word in message_list if word.lower() in black_listed_words]
+                    if bad_words != []:
+                        if len(bad_words) == 1:
+                            messages.error(request, f'Failed to save message: {", ".join(bad_words)} is not allowed in mails')
+                        else:
+                            messages.error(request, f'Failed to save message: {", ".join(bad_words)} are not allowed in mails')
+                        return JsonResponse(data={'success':'false',}, status=200)
+                    # create a new message object
+                    if html_message and len(html_message) > 5 and len(body) == 0:
+                        new_email = Email.objects.create(subject=subject, bcc=bcc, cc=cc, body=html_message, sent_by=request.user, is_html=True)
+                    elif html_message and len(body) > 5:
+                        new_email = Email.objects.create(subject=subject, bcc=bcc, cc=cc, body=body, sent_by=request.user, is_html=True)
+                    else:
+                        new_email = Email.objects.create(subject=subject, bcc=bcc, cc=cc, body=body, sent_by=request.user)
+                    new_email.is_draft = True
+                    new_email.save()
+                    # add all receivers to the new mail
+                    for receiver in receivers:
+                        new_email.send_to.add(receiver)
+                    new_email.save()
+                    for file in attached_files:
+                        attachment = Attachment.objects.create(file=file, added_by=request.user)
+                        attachment.save()
+                        new_email.attachments.add(attachment)
+                    new_email.save()
+                    messages.success(request, 'Email saved as draft')
+                    return JsonResponse(data={'success':'true',}, status=200)
+
+                elif len(receivers) == 0:
+                    if message_form['subject'] != '':
+                        subject = message_form['subject'].title()
+                    else:
+                        subject = 'No Subject'
+                    if message_form['bcc'] != '':
+                        bcc = message_form['bcc']
+                    else:
+                        bcc = None
+                    if message_form['cc'] != '':
+                        cc = message_form['cc']
+                    else:
+                        cc = None
+                    body = message_form['body']
+                    if request.session.test_cookie_worked() and request.user.accepted_cookies and request.session['last_edit_request_email_draft_id']:
+                        if Email.objects.filter(sent_by=request.user, is_draft=True, id=request.session['last_edit_request_email_draft_id']).exists():
+                            draft = Email.objects.filter(sent_by=request.user, is_draft=True, id=request.session['last_edit_request_email_draft_id']).first()
+                            draft.subject = subject
+                            draft.bcc = bcc
+                            draft.cc = cc
+                            draft.body = body
+                            draft.save()
+                            messages.success(request, "Draft updated")
+                            request.session['last_save_request_email_draft_id'] = draft.id
+                    elif not request.session.test_cookie_worked():
+                        messages.error(request, 'Failed to save draft: Session expired. Please try enabling browser cookies and reload the page')
+                    elif not request.user.accepted_cookies:
+                        messages.error(request, "Failed to save draft: Please accept cookies. View <a href='{}?cookies'>settings</a> to accept cookies".format(settings_url))
+                    else:
+                        messages.error(request, 'No email address found')
                     return JsonResponse(data={'success':'false',}, status=200)
 
+
         else:
-            return HttpResponse('Not an ajax request')
+            return JsonResponse(data={'success':'false',}, status=400)
 
 
 
@@ -596,4 +883,185 @@ class AjaxDeleteView(View):
             return HttpResponse('Not an ajax request!')
 
         
+
+class ContactsView(LoginRequiredMixin, View):
+    '''View for displaying user contacts'''
+    model1= EmailAddress
+    model2 = PhoneNumber
+    template_name = 'messanger/contacts.html'
+
+    def get(self, request, *args, **kwargs):
+        try:
+            email_addresses = self.model1.objects.filter(added_by=request.user)
+            phone_numbers = self.model2.objects.filter(added_by=request.user)
+            context = {
+                'email_contacts': email_addresses,
+                'phone_contacts': phone_numbers,
+            }
+            request.session.set_test_cookie()
+            return render(request, self.template_name, context)
+        except Exception as e:
+            print(e)
+            return HttpResponse('Something went wrong')
+    
+    def post(self, request, *args, **kwargs):
+        payload, files = request.POST, request.FILES
+        phone_number_pattern = re.compile(r'^\+(?:[0-9] ?){10,14}[0-9]$')
+        email_pattern = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}$')
+        user = request.user
+        already_exists = set()
+        no_of_new_contacts = 0
+        no_of_contacts_found = 0
+        lines = []
+        file_data = None
+
+        if files:
+            contact_file = files['contact_file']
+            if contact_file:
+                if contact_file.name.split('.').pop() not in ['csv', 'txt']:
+                    messages.error(request, 'Invalid file type')
+                    return redirect('contacts')
+
+                else:
+                    file_data = contact_file.read().decode('utf-8')
+
+        if payload:
+            new_contacts = payload['new_contact'].split(',')
+            object_type = request.GET['object_type']
+
+            if object_type == 'email':
+                if new_contacts:
+                    for new_contact in new_contacts:
+                        if not self.model1.objects.filter(address=new_contact, added_by=user).exists():
+                            new_email = self.model1.objects.create(address=new_contact.strip(), added_by=user)
+                            new_email.save()
+                            no_of_new_contacts += 1
+                        else:
+                            already_exists.add(new_contact)
+                if file_data:
+                    lines += re.split(r"[\s,;']", file_data)
+                    for line in lines:
+                        for email_address in email_pattern.findall(line):
+                            no_of_contacts_found += 1
+                            if not self.model1.objects.filter(address=email_address, added_by=user).exists():
+                                if email_address.strip() != '':
+                                    new_email = self.model1.objects.create(address=email_address.strip(), added_by=user)
+                                    new_email.save()
+                                    no_of_new_contacts += 1
+                            else:
+                                already_exists.add(email_address.strip())
+
+            elif object_type == 'phone_number':
+                if new_contacts:
+                    for new_contact in new_contacts:
+                        if not self.model2.objects.filter(number=new_contact, added_by=user).exists():
+                            new_phone = self.model2.objects.create(number=new_contact.strip(), added_by=user)
+                            new_phone.save()
+                            no_of_new_contacts += 1
+                        else:
+                            already_exists.add(new_contact)
+                if file_data:
+                    lines += re.split(r"[\s,.;\-']", file_data)
+                    for line in lines:
+                        for phone_number in phone_number_pattern.findall(line):
+                            # print(phone_number+'here')
+                            no_of_contacts_found += 1
+                            if not self.model2.objects.filter(number=phone_number, added_by=user).exists():
+                                if phone_number.strip() != '':
+                                    new_phone = self.model2.objects.create(number=phone_number.strip(), added_by=user)
+                                    new_phone.save()
+                                    no_of_new_contacts += 1
+                            else:
+                                already_exists.add(phone_number.strip())
+
+        if no_of_contacts_found > 1:
+            messages.success(request, '{} contacts found in file'.format(no_of_contacts_found))
+        elif no_of_contacts_found == 1:
+            messages.success(request, '{} contact found in file'.format(no_of_contacts_found))
+        elif no_of_contacts_found == 0 and file_data:
+            messages.info(request, 'No contacts found in file')
+
+        if already_exists:
+            print(already_exists)
+            messages.info(request, 'Some contacts already exists')
+
+        if no_of_new_contacts > 1:
+            messages.success(request, '{} new contacts added'.format(no_of_new_contacts))
+        elif no_of_new_contacts == 1:
+            messages.success(request, '{} new contact added'.format(no_of_new_contacts))
+        elif no_of_new_contacts == 0:
+            messages.info(request, 'No new contact added')
+
+        return redirect('contacts')
+
+
+
+class ContactsAjaxView(LoginRequiredMixin, View):
+    model1 = PhoneNumber
+    model2 = EmailAddress
+
+    def post(self, request, *args, **kwargs):
+        is_ajax = request.headers.get('X-Requested-With') == "XMLHttpRequest"
+        user = request.user
+        if is_ajax:
+            try:
+                action = request.POST['action']
+                payload = json.loads(request.POST['payload'])
+            except KeyError:
+                return JsonResponse(data={'success': 'false'}, status=200)
+
+            if action == 'update_last_active_tab':
+                if request.session.test_cookie_worked():
+                    if user.accepted_cookies:
+                        request.session['contacts_last_active_tab'] = payload
+                        return JsonResponse(data={'success': 'true'}, status=200)
+                    else:
+                        request.session['contacts_last_active_tab'] = None
+                        return JsonResponse(data={'success': 'false'}, status=200)
+                else:
+                    request.session['contacts_last_active_tab'] = None
+                return JsonResponse(data={'success': 'false'}, status=200)
+
+            if action == 'edit':
+                object_type = payload['object_type']
+                object_id = payload['contact_id']
+                new_value = payload['new_value']
+
+                if object_type == 'numbers':
+                    number = self.model1.objects.filter(id=object_id, added_by=user).first()
+                    number.number = new_value
+                    number.save()
+                    return JsonResponse(data={'success': 'true'}, status=200)
+
+                elif object_type == 'emails':
+                    email = self.model2.objects.filter(id=object_id, added_by=user).first()
+                    email.address = new_value
+                    email.save()
+                    return JsonResponse(data={'success': 'true'}, status=200)
+
+            elif action == 'delete':
+                object_type = payload['object_type']
+                object_ids = payload['contact_ids']
+
+                if object_type == 'numbers':
+                    for object_id in object_ids:
+                        number = self.model1.objects.filter(id=object_id, added_by=user).first()
+                        if number:
+                            try:
+                                number.delete()
+                            except Exception as e:
+                                print(e)
+                                pass
+                    return JsonResponse(data={'success': 'true'}, status=200)
+
+                elif object_type == 'emails':
+                    for object_id in object_ids:
+                        email = self.model2.objects.filter(id=object_id, added_by=user).first()
+                        if email:
+                            try:
+                                email.delete()
+                            except Exception as e:
+                                print(e)
+                                pass
+                    return JsonResponse(data={'success': 'true'}, status=200)
 

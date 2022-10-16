@@ -54,8 +54,10 @@
                         <div class="message">
                             {% if email.is_sent %}
                             <div class="message_summary">
-                            {% else %}
+                            {% elif not email.is_sent and not email.is_draft %}
                             <div class="message_summary failed_message">
+                            {% elif not email.is_sent and email.is_draft %}
+                            <div class="message_summary drafted_message" id="{{ email.id }}">
                             {% endif %}
                                 <input id="{{ email.id }}" type="checkbox" value="{{ email.id }}" >
                                 <div>
@@ -69,7 +71,7 @@
                                         {% elif email.sent_to.all|length == email.sent_by.added_email_addresses.all|length %}
                                             <h3>Sent to all addresses</h3>
                                         {%  endif %}
-                                    {% else %}
+                                    {% elif not email.is_sent and not email.is_draft %}
                                         {% if email.send_to.all|length == 1 %}
                                             {% for email_address in email.send_to.all %}
                                                 <h3>Failed to send to {{ email_address.address | truncatechars:20 }}</h3>
@@ -79,8 +81,24 @@
                                         {% elif email.send_to.all|length == email.sent_by.added_email_addresses.all|length %}
                                             <h3>Failed to send to all addresses</h3>
                                         {%  endif %}
+                                    {% elif not email.is_sent and email.is_draft %}
+                                        {% if email.send_to.all|length == 1 %}
+                                            {% for email_address in email.send_to.all %}
+                                                <h3>To be sent to {{ email_address.address | truncatechars:20 }}</h3>
+                                            {% endfor %}
+                                        {% elif email.send_to.all|length  > 1 and email.send_to.all|length < email.sent_by.added_email_addresses.all|length %}
+                                            <h3>To be sent to {{ email.send_to.all | length }} address{{ email.send_to.all | length | pluralize:"s,es" }}</h3>
+                                        {% elif email.send_to.all|length == email.sent_by.added_email_addresses.all|length %}
+                                            <h3>To be sent to all addresses</h3>
+                                        {%  endif %}
                                     {% endif %}
-                                    <p>{{ email.date_sent| date:'M d y' }}</p>
+                                    <p>
+                                        {% if email.is_sent %}
+                                            {{ email.date_sent|mytimesincer }}
+                                        {% else %}
+                                            {{ email.date_created|mytimesincer }}
+                                        {% endif %}
+                                    </p>
                                 </div>
                                 {% if email.subject %}
                                     <p class="succinct">{{ email.subject | truncatewords:15 }}</p>
@@ -99,7 +117,7 @@
                                 {% if not email.is_html %}
                                     <p>{{ email.body | linebreaks | urlize | telify }}</p>
                                 {% else %}
-                                    <p>{{ email.body | linebreaks }}</p>
+                                    <p class="container">{{ email.body | linebreaks }}</p>
                                 {% endif %}
                                 {% if email.attachments.all|length > 0 %}
                                     <div class="attachments">
@@ -112,26 +130,53 @@
                                     </div>
                                 {% endif %}
                                 <p id="minor">
-                                {% if email.sent_to.all|length  > 1%}
+                                {% if email.sent_to.all|length  > 0 and email.is_sent %}
                                     <a>See recipients</a> - 
+                                {% elif email.send_to.all|length > 0 and not email.is_sent and not email.is_draft %}
+                                    <a style="color: coral !important;">See recipients</a> - 
+                                {% elif email.send_to.all|length > 0 and not email.is_sent and email.is_draft %}
+                                    <a style="color: #888 !important;">See recipients</a> - 
                                 {% endif %}
-                                {{ email.date_sent| time:'G:i' }}</p>
+                                {{ email.date_sent| time:'H:i' }}</p>
                                 <div class="retry_del">
-                                    {% if not email.is_sent %}
+                                    {% if not email.is_sent and not email.is_draft %}
                                         <span><a href="{% url 'retry' %}?type=email&&pk={{email.id}}">retry</a></span>
+                                    {% elif not email.is_sent and email.is_draft %}
+                                        <span><a href="{% url 'retry' %}?type=email&&pk={{email.id}}">send</a></span>
+                                        <span><a style="color: #888 !important;" id="{{email.id}}" class="edit_draft">edit</a></span>
                                     {% endif %}
                                     <span id="del_btn">delete</span>
                                 </div>
                             </div>
-                            {% if email.sent_to.all|length  > 1%}
+                            {% if email.sent_to.all|length >= 0 and email.is_sent %}
                                 <div class="recipients">
                                     <div>
-                                        <h3>Sent to</h3>
+                                        <h3>Sent to - {{ email.sent_to.all | length }}</h3>
                                         <img src="{% static 'images/previous.svg' %}" alt="">
                                     </div>
                                     <ul>
                                         {% for recipient in email.sent_to.all %}
                                             <li>{{ recipient }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% elif email.sent_to.all|length == 0 and not email.is_sent %}
+                                <div class="recipients">
+                                    <div>
+                                        {% if not email.is_draft %}
+                                            <h3 style="color: #555 !important;">Failed to send to - {{ email.send_to.all | length }}</h3>
+                                        {% elif email.is_draft %}
+                                            <h3>To be sent to - {{ email.send_to.all | length }}</h3>
+                                        {% endif %}
+                                        <img src="{% static 'images/previous.svg' %}" alt="">
+                                    </div>
+                                    <ul>
+                                        {% for recipient in email.send_to.all %}
+                                            {% if not email.is_draft %}
+                                                <li style="color: hsl(39, 78%, 80%) !important;">{{ recipient }}</li>
+                                            {% elif email.is_draft %}
+                                                <li style="color: #999 !important;">{{ recipient }}</li>
+                                            {% endif %}
                                         {% endfor %}
                                     </ul>
                                 </div>
@@ -243,6 +288,7 @@
                 <input type="file" name="file" id="attached_html_file" accept=".html" max="26214400">
                 <a id="edit_html" style="display: none;">Edit HTML</a>
             </div>
+            <p id="draft">Save as draft</p>
         </form>
 
         <div class="confirm_send_popup">
@@ -281,17 +327,17 @@
                     {% if 'info' in message.tags %}
                         <div class="toast info">
                             <img src="{% static 'images/info2.svg' %}" alt="" style="width: 20px; height: 20px;">
-                            <p>{{ message }}</p>
+                            <p>{{ message|showHTML5 }}</p>
                         </div>
                     {% elif  'success' in message.tags %}
                         <div class="toast success">
                             <img src="{% static 'images/tick.svg' %}" alt="" style="width: 20px; height: 20px;">
-                            <p>{{ message }}</p>
+                            <p>{{ message|showHTML5 }}</p>
                         </div>
                     {% elif  'error' in message.tags %}
                         <div class="toast error">
                             <img src="{% static 'images/cancel.svg' %}" alt="" style="width: 20px; height: 20px;">
-                            <p>{{ message }}</p>
+                            <p>{{ message|showHTML5 }}</p>
                         </div>
                     {% endif %}
                 {% endfor %}
@@ -335,7 +381,7 @@
                 document.querySelector('.lds-ellipsis').querySelectorAll('div').forEach(div => {
                     div.classList.remove('play');
                 })
-            }, 500);
+            }, 100);
             
         }
     };
@@ -403,8 +449,24 @@
             }, 200)
         }
 
+        // scroll to last edited draft
+        if (document.querySelector('.drafted_message')){
+            var drafts = document.querySelectorAll('.drafted_message');
+            var last_saved_draft_id = '{{ request.session.last_save_request_email_draft_id }}';
+            var last_edited_draft_id = '{{ request.session.last_edit_request_email_draft_id }}';
+            if (last_saved_draft_id == last_edited_draft_id){
+                drafts.forEach(draft => {
+                    if (draft.id == last_saved_draft_id){
+                        draft.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                        });
+                        draft.parentElement.querySelector('.message_summary').click();
+                    };
+                });
+            };   
+        };
 
-        // opens notifications shade
         // opens notifications shade
         if (document.querySelector('.notifications')){
             document.querySelector('.notification_icon').querySelector('img').classList.add('blink_img');
@@ -621,9 +683,10 @@
                         if(document.querySelector('#address_file').files.length != 0){
                             var file_name = document.querySelector('#address_file').files[0].name;
                             var file_size_int = document.querySelector('#address_file').files[0].size;
+                            var file_type = document.querySelector('#address_file').files[0].type;
                             var file_size = returnFileSize(file_size_int);
                             document.querySelector('.file_name').querySelector('p').innerText = file_name + ' (' + file_size + ')';
-                            if (fileSizeDoesNotExceed(file_size_int, 1048576)){
+                            if (fileSizeDoesNotExceed(file_size_int, 1048576) && (file_type == 'text/plain' || file_type == 'text/csv')){
                                 proceedButton.disabled = false;
                                 proceedButton.style.pointerEvents = 'auto';
                             }
@@ -662,9 +725,10 @@
                         if(document.querySelector('#address_file').files.length != 0){
                             var file_name = document.querySelector('#address_file').files[0].name;
                             var file_size_int = document.querySelector('#address_file').files[0].size;
+                            var file_type = document.querySelector('#address_file').files[0].type;
                             var file_size = returnFileSize(file_size_int);
                             document.querySelector('.file_name').querySelector('p').innerText = file_name + ' (' + file_size + ')';
-                            if (fileSizeDoesNotExceed(file_size_int, 1048576)){
+                            if (fileSizeDoesNotExceed(file_size_int, 1048576 && (file_type == 'text/plain' || file_type == 'text/csv'))){
                                 proceedButton.disabled = false;
                                 proceedButton.style.pointerEvents = 'auto';
                             }
@@ -725,9 +789,10 @@
                     if(document.querySelector('#address_file').files.length != 0){
                         var file_name = document.querySelector('#address_file').files[0].name;
                         var file_size_int = document.querySelector('#address_file').files[0].size;
+                        var file_type = document.querySelector('#address_file').files[0].type;
                         var file_size = returnFileSize(file_size_int);
                         document.querySelector('.file_name').querySelector('p').innerText = file_name + ' (' + file_size + ')';
-                        if (fileSizeDoesNotExceed(file_size_int, 1048576)){
+                        if (fileSizeDoesNotExceed(file_size_int, 1048576) && (file_type == 'text/plain' || file_type == 'text/csv')){
                             proceedButton.disabled = false;
                             proceedButton.style.pointerEvents = 'auto';
                         }
@@ -751,6 +816,14 @@
     };
 
     window.onclick = (event) => {
+
+        if (document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.toggle('show_menu');
+        }
+        else if (!document.querySelector('.menu').contains(event.target) && !document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.remove('show_menu');
+        }
+
         var messages = document.querySelectorAll('.message');
         // close notification shade on outside click
         if(document.querySelector('.notifications') && !document.querySelector('.notification_icon').contains(event.target) && !document.querySelector('.notifications').contains(event.target) && document.querySelector('.notifications').classList.contains('open_shade')){
@@ -775,6 +848,14 @@
             && !document.querySelector('.confirm_send_popup').contains(event.target) && !document.querySelector('.confirm_send_popup').classList.contains('show_confirm_send_popup')) {
             document.querySelector('.message_popup').classList.add('remove_message_popup');
             document.querySelector('.message_popup').classList.remove('show_message_popup');
+            setTimeout(() => {
+                document.querySelector('.message_popup').querySelector('#draft').innerText = 'Save as draft';
+                document.querySelector('.message_popup').querySelector('#send_btn').style.display = 'block';
+                document.querySelector('.message_popup').querySelector('label[for=message]').innerText = 'Compose mail';
+                document.querySelector('.message_popup').querySelectorAll('.attach').forEach(attach => {
+                    attach.style.display = '';
+                });
+            }, 500);
             document.querySelectorAll('form').forEach(form => {
                 form.reset();
                 document.querySelector('.file_name').querySelector('p').innerText = 'No file selected';
@@ -790,6 +871,40 @@
                 && !message.querySelector('.recipients').contains(event.target) && message.querySelector('.recipients').classList.contains('show_recipients')){
                 message.querySelector('.recipients').classList.remove('show_recipients');
                 document.querySelector('body').classList.remove('stop_scroll');
+            };
+
+            if(message.querySelector('.edit_draft') && message.querySelector('.edit_draft').contains(event.target)){
+                $.ajax({
+                    url: '{% url "edit-draft" %}',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        'draft_id': message.querySelector('.edit_draft').id,
+                        'object_type': 'email',
+                    },
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    success: function(response){
+                        if (response['success'] == 'true'){
+                            document.querySelector('.message_popup').querySelector('label[for=message]').innerText = 'Edit draft';
+                            document.querySelector('.message_popup').querySelector('#draft').innerText = 'Save draft';
+                            document.querySelector('.message_popup').querySelector('#send_btn').style.display = 'none';
+                            document.querySelector('.message_popup').querySelectorAll('.attach').forEach(attach => {
+                                attach.style.display = 'none';
+                            });
+                            document.querySelector('.message_popup').querySelector('#subject').value = response['data']['subject'];
+                            document.querySelector('.message_popup').querySelector('#cc').value = response['data']['cc'];
+                            document.querySelector('.message_popup').querySelector('#bcc').value = response['data']['bcc'];
+                            document.querySelector('.message_popup').querySelector('#message').value = response['data']['message'];
+                            document.querySelector('.message_popup').classList.add('show_message_popup');
+                        }
+                        else if(response['success'] == 'false'){
+                            console.log(response['error']);
+                        }
+                    },
+                });
             };
         });
 
@@ -877,26 +992,39 @@
 
         
         document.querySelector('.message_popup').addEventListener('pointerover', () => {
+
             if (document.querySelector('#bcc').checkValidity() == false){
                 document.querySelector('#message').disabled = true;
                 document.querySelector('#bcc').style.borderColor = 'hsla(0, 61%, 70%, 0.8)';
+                document.querySelector('#draft').style.pointerEvents = 'none';
             }
             else if (document.querySelector('#cc').checkValidity() == false){
+                document.querySelector('#draft').style.pointerEvents = 'none';
                 document.querySelector('#message').disabled = true;
                 document.querySelector('#cc').style.borderColor = 'hsla(0, 61%, 70%, 0.8)';
             }
             else{
+                var message = document.querySelector('#message').value;
+                if (message != '' && message.length >= 10 && message.length <= 160){
+                    document.querySelector('#draft').style.pointerEvents = 'auto';
+                    if(document.querySelector('.help_text').style.display != 'none'){
+                        document.querySelector('#draft').style.pointerEvents = 'none';
+                    };
+                }
+                else{
+                    document.querySelector('#draft').style.pointerEvents = 'none';
+                }; 
                 document.querySelector('#message').disabled = false;
                 document.querySelector('#bcc').style.borderColor = '';
                 document.querySelector('#cc').style.borderColor = '';
-            }
+            };
 
             if (document.querySelector('#attached_file').files.length > 0){
                 document.querySelector('.attach').querySelector('label').querySelector('span').innerText = document.querySelector('#attached_file').files.length + ' file(s) chosen'
             }
             else{
                 document.querySelector('.attach').querySelector('label').querySelector('span').innerText = 'Attach file'
-            }
+            };
 
             if (document.querySelector('#attached_html_file').files.length > 0){
                 document.querySelectorAll('.attach')[1].querySelector('label').querySelector('span').innerText = document.querySelector('#attached_html_file').files[0].name;
@@ -905,7 +1033,7 @@
             else{
                 document.querySelectorAll('.attach')[1].querySelector('label').querySelector('span').innerText = 'Attach HTML message instead';
                 document.querySelector('#edit_html').style.display = 'none';
-            }
+            };
 
             var attached_files = document.querySelector('#attached_file').files;
             var total_size = 0;
@@ -963,7 +1091,20 @@
         message_field.addEventListener('keyup', (e) => {
             e.stopImmediatePropagation()
             clearTimeout(timeout);
-            var timeout = setTimeout(send, sendAfter);  
+            var timeout = setTimeout(send, sendAfter); 
+            
+            setTimeout(() => {
+                var message = document.querySelector('#message').value;
+                if (message != '' && message.length >= 10 && message.length <= 160){
+                    document.querySelector('#draft').style.pointerEvents = 'auto';
+                    if(document.querySelector('.help_text').style.display != 'none'){
+                        document.querySelector('#draft').style.pointerEvents = 'none';
+                    };
+                }
+                else{
+                    document.querySelector('#draft').style.pointerEvents = 'none';
+                }; 
+            }, sendAfter * 2)
         });
 
         document.querySelector('#send_btn').addEventListener('click', (e) => {
@@ -1024,6 +1165,72 @@
                     if (data['success'] == 'true'){
                         message_field.value = data['html'];
                         message_field.title = 'Edit file content';
+                    }
+                }
+            });
+
+        });
+
+        document.querySelector('#draft').addEventListener('click', (e) =>{
+            e.stopImmediatePropagation();
+            
+            var addFormData = {
+                'email_addresses': document.querySelector('#address').value,
+            };
+            var selected_addresses = [];
+            document.querySelectorAll('.contact').forEach(contact => {
+                if (contact.querySelector('input').checked == true){
+                    selected_addresses.push(contact.querySelector('input').value);
+                };
+            });
+            var selectFormData = {
+                'all_addresses': document.querySelector('#all').checked,
+                'selected_addresses': selected_addresses,
+            };
+            var messageFormData = {
+                'subject': document.querySelector('#subject').value,
+                'cc': document.querySelector('#cc').value,
+                'bcc': document.querySelector('#bcc').value,
+                'body': document.querySelector('#message').value,
+            };
+            var payload = {
+                'addFormData': addFormData,
+                'selectFormData': selectFormData,
+                'messageFormData': messageFormData,
+                'action': 'save_email_draft',
+            };
+
+            var file = document.querySelector('#address_file').files[0];
+            var attached_files = document.querySelector('#attached_file').files;
+            var attached_html_file = document.querySelector('#attached_html_file').files[0];
+            var formData = new FormData();
+            formData.append('file', file);
+            formData.append('attached_html_file', attached_html_file);
+            for(var i = 0; i < attached_files.length; i++){
+                formData.append('attached_file-'+i, attached_files[i]);
+            };
+            formData.append('payload', JSON.stringify(payload))
+            
+            $.ajax({
+                url: '{% url "send" %}',
+                method: 'POST',
+                contentType: false,
+                dataType: 'json',
+                data: formData,
+                processData: false,
+                cache: false,
+                headers: {
+                    'X-CSRFToken': getCookie("csrftoken"),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(data){
+                    if (data['success'] == 'true' || 'false'){
+                        document.querySelector('.message_popup').classList.add('remove_message_popup');
+                        document.querySelector('.message_popup').classList.remove('show_message_popup');
+                        setTimeout(() => {
+                            window.location.reload()
+                        }, 200);
+                        
                     }
                 }
             });

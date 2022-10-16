@@ -1,4 +1,5 @@
 from datetime import timedelta
+from django.urls import reverse
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 from django.utils import timezone, timesince
@@ -10,6 +11,8 @@ import numpy
 from django.core.mail import EmailMessage
 from django.core import mail
 from django.core.mail.backends.smtp import EmailBackend
+from django.conf import settings
+
 
 
 class PhoneNumber(models.Model):
@@ -35,7 +38,7 @@ class EmailAddress(models.Model):
         return str(self.address)
 
     class Meta:
-        ordering = ['address']
+        ordering = ['address', '-date_added']
         verbose_name_plural = "Email addresses"
 
 
@@ -45,9 +48,10 @@ class TextMessage(models.Model):
     sent_by = models.ForeignKey(CustomUser, related_name='text_messages', verbose_name="sender", null=True, on_delete=models.CASCADE)
     send_to = models.ManyToManyField(PhoneNumber, max_length=16, related_name="directed_sms", default=None, verbose_name="proposed receivers")
     sent_to = models.ManyToManyField(PhoneNumber, max_length=16, default=None, blank=True, related_name="sms_received", verbose_name="receivers")
-    date_created = models.DateTimeField(default=timezone.now)
+    date_created = models.DateTimeField(auto_now_add=True)
     date_sent = models.DateTimeField(default=timezone.now) 
     is_sent = models.BooleanField(default=False)
+    is_draft = models.BooleanField(default=False)
 
     def __str__(self):
         return self.message
@@ -59,13 +63,16 @@ class TextMessage(models.Model):
 
     def send(self, receivers=None):
         '''Handles the sending of sms objects'''
+        settings_url = reverse('settings')
+
         if self.sent_by.message_credit > 0:
             self.sent_by.can_send = True
-            self.sent_by.save()
+        else:
+            self.sent_by.can_send = False
 
         if not self.sent_by.accepted_pp:
             self.sent_by.accepted_pp = True
-            self.sent_by.save()
+        self.sent_by.save()
 
         if self.sent_by.can_send and self.sent_by.accepted_pp:
             if receivers and receivers != []:
@@ -80,9 +87,9 @@ class TextMessage(models.Model):
             else:
                 return False, 'No receivers specified.'
         elif self.sent_by.can_send == False and self.sent_by.message_credit <= 0:
-            return False, 'You have no credit to send messages. Please top-up your account.'
+            return False, "You have no credit to send messages. Please top-up your account. Click <a href='{}?purchase'>here</a> to top-up".format(settings_url)
         else:
-            return False, 'You are not permitted to send messages. Please contact our support to reactivate your account.'
+            return False, "You are not permitted to send messages. Please <a href='mailto:{}'>contact</a> our support to reactivate your account.".format(settings.POSTMAN_SUPPORT_EMAIL)
 
 
     def delete(self, *args, **kwargs):
@@ -93,6 +100,7 @@ class TextMessage(models.Model):
 
     def finish_sending(self, receivers):
         '''Finishes sending the message to all the receivers'''
+        settings_url = reverse('settings')
         active_senders = self.sent_by.message_profiles.filter(is_active=True)
         if active_senders and active_senders != []:
             count = 0
@@ -107,7 +115,7 @@ class TextMessage(models.Model):
                 if count < self.sent_by.preferred_sms_rate and timesince.timesince(start_time) < '1 minutes':
                     if self.sent_by.wants_random:
                         # further randomize the order of the active senders
-                        senders = random.choices(random.choices(active_senders, k=len(active_senders)), k=(len(self.sent_to.all())*len(active_senders)))
+                        senders = random.choices(random.choices(active_senders, k=len(active_senders)), k=(len(self.send_to.all())*len(active_senders)))
                         random.shuffle(senders)
                         sender = random.choice(senders)
                     else:
@@ -124,10 +132,8 @@ class TextMessage(models.Model):
                             count += 1
                     
                     else:
-                        self.sent_by.can_send = False
-                        self.sent_by.save()
                         self.save()
-                        return False, 'Insufficient message credits.[{} recipient(s), {} message credit(s) available] Please purchase more.'.format(len(self.sent_to.all()), math.floor(self.sent_by.message_credit))
+                        return False, 'Insufficient message credits.[{} recipient(s), {} message credit(s) available] Please <a href="{}?purchase">purchase more</a>.'.format( len(self.send_to.all()), math.floor(self.sent_by.message_credit), settings_url)
 
                 elif count > self.sent_by.preferred_sms_rate and timesince.timesince(start_time) < '1 minutes':
                     # wait for the remaining time
@@ -142,16 +148,18 @@ class TextMessage(models.Model):
 
             if len(self.sent_to.all()) == len(self.send_to.all()):
                 self.is_sent = True
+                self.is_draft = False
                 self.save()
                 return True, 'Message sent successfully.'
             elif len(self.sent_to.all()) > 0 and len(self.sent_to.all()) < len(self.send_to.all()):
                 self.is_sent = True
+                self.is_draft = False
                 self.save()
                 return True, 'Message sent! Some failed'
             else:
-                return False, 'Message failed to send. Check your internet connectivity.'
+                return False, 'Message failed to send. Might be your internet connectivity.'
         else:
-            return False, 'You have no active messaging profiles. Please create or enable one and retry.'
+            return False, 'You have no active messaging profiles. Please create or enable one and retry. You can do this <a href="{}?add-m-profile">here</a>'.format(settings_url)
     
     def send_via_twilio(self, sender, receiver):
         '''Sends the message via twilio'''
@@ -229,10 +237,11 @@ class Email(models.Model):
     sent_by = models.ForeignKey(CustomUser, related_name='mails', null=True, verbose_name="sender", on_delete=models.CASCADE)
     send_to = models.ManyToManyField(EmailAddress, related_name="directed_mails", default=None, verbose_name="proposed receivers")
     sent_to = models.ManyToManyField(EmailAddress, related_name="mails_received", verbose_name="receivers")
-    date_created = models.DateTimeField(default=timezone.now)
+    date_created = models.DateTimeField(auto_now_add=True)
     date_sent = models.DateTimeField(default=timezone.now)
     is_sent = models.BooleanField(default=False)
     is_html = models.BooleanField(default=False)
+    is_draft = models.BooleanField(default=False)
 
     def __str__(self):
         if self.subject:
@@ -244,13 +253,16 @@ class Email(models.Model):
 
 
     def send(self, receivers=None):
+        settings_url = reverse('settings')
+
         if self.sent_by.message_credit > 0:
             self.sent_by.can_send = True
-            self.sent_by.save()
+        else:
+            self.sent_by.can_send = False
 
         if not self.sent_by.accepted_pp:
             self.sent_by.accepted_pp = True
-            self.sent_by.save()
+        self.sent_by.save()
 
         if self.sent_by.can_send and self.sent_by.accepted_pp: 
             if receivers and receivers != []:
@@ -265,12 +277,13 @@ class Email(models.Model):
             else:
                 return False, 'No receivers specified.'
         elif self.sent_by.can_send == False and self.sent_by.message_credit <= 0:
-            return False, 'You have no credit to send mails. Please top-up your account.'
+            return False, "You have no credit to send mails. Please top-up your account. Click <a href='{}?purchase'>here</a> to top-up.".format(settings_url)
         else:
-            return False, 'You are not permitted to send emails. Please contact our support to reactivate your account.'
+            return False, 'You are not permitted to send emails. Please <a href="mailto:{}">contact</a> our support to reactivate your account.'.format(settings.POSTMAN_SUPPORT_EMAIL)
     
     
     def finish_sending(self):
+            settings_url = reverse('settings')
             active_senders = list(self.sent_by.email_profiles.filter(is_active=True))
             
             if self.sent_by.can_use_default and self.sent_by.wants_default:
@@ -280,7 +293,7 @@ class Email(models.Model):
                 random.shuffle(active_senders)
                 if self.sent_by.wants_random:
                     #further randomize the order of the active senders
-                    senders = random.choices(random.choices(active_senders, k=len(active_senders)), k=(len(self.sent_to.all())*len(active_senders)))
+                    senders = random.choices(random.choices(active_senders, k=len(active_senders)), k=(len(self.send_to.all())*len(active_senders)))
                     random.shuffle(senders)
                 else:
                     senders = random.choices(active_senders, k=(len(active_senders)))
@@ -346,10 +359,8 @@ class Email(models.Model):
                                     pass
 
                             else:
-                                self.sent_by.can_send = False
-                                self.sent_by.save()
                                 self.save()
-                                return False, 'Insufficient message credits.[{} recipient(s), {} message credit(s) available] Please purchase more.'.format(len(self.sent_to.all()), math.floor(self.sent_by.message_credit))
+                                return False, 'Insufficient message credits.[{} recipient(s), {} message credit(s) available] Please <a href="{}?purchase">purchase more</a>.'.format(len(self.send_to.all()), math.floor(self.sent_by.message_credit), settings_url)
                         elif count > self.sent_by.preferred_mail_rate and timesince.timesince(start_time) < '1 minutes':
                             # wait for the remaining time
                             wait_time = (timedelta(minutes=1) + start_time) - timezone.now()
@@ -363,19 +374,21 @@ class Email(models.Model):
 
                     if len(self.sent_to.all()) == len(self.send_to.all()):
                         self.is_sent = True
+                        self.is_draft = False
                         self.save()
                         return True, 'Email sent successfully.'
                     elif len(self.sent_to.all()) > 0 and len(self.sent_to.all()) < len(self.send_to.all()):
                         self.is_sent = True
+                        self.is_draft = False
                         self.save()
                         return True, 'Email sent! Some failed'
                     else:
-                        return False, 'Email failed to send. Check your internet connectivity.'
+                        return False, 'Email failed to send. Might be your internet connectivity.'
                 except Exception as e:
                     print(e)
                     return False, f'Failed to send email: {e}'
             else:
-                return False, 'You have no active emailing profiles. Please create or enable one and retry.'
+                return False, 'You have no active emailing profiles. Please create or enable one and retry. You can do this <a href="{}?add-e-profile">here</a>'.format(settings_url)
 
 
     def delete(self, *args, **kwargs):

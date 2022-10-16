@@ -53,8 +53,10 @@
                         <div class="message">
                             {% if message.is_sent %}
                             <div class="message_summary">
-                            {% else %} 
+                            {% elif not message.is_sent and not message.is_draft %} 
                             <div class="message_summary failed_message">
+                            {% elif not message.is_sent and message.is_draft %} 
+                            <div class="message_summary drafted_message" id="{{ message.id }}">
                             {% endif %}  
                                 <input id="{{ message.id }}" type="checkbox" value="{{ message.id }}">
                                 <div>
@@ -68,7 +70,7 @@
                                         {% elif message.sent_to.all|length == message.sent_by.added_phone_numbers.all|length %}
                                             <h3>Sent to all contacts</h3>
                                         {%  endif %}
-                                    {% else %}
+                                    {% elif not message.is_sent and not message.is_draft %}
                                         {% if message.send_to.all|length == 1 %}
                                             {% for number in message.send_to.all %}
                                                 <h3>Failed to send to {{ number }}</h3>
@@ -78,34 +80,77 @@
                                         {% elif message.send_to.all|length == message.sent_by.added_phone_numbers.all|length %}
                                             <h3>Failed to send to all contacts</h3>
                                         {%  endif %}
+                                    {% elif not message.is_sent and message.is_draft %}
+                                        {% if message.send_to.all|length == 1 %}
+                                            {% for number in message.send_to.all %}
+                                                <h3>To be sent to {{ number }}</h3>
+                                            {% endfor %}
+                                        {% elif message.send_to.all|length  > 1 and message.send_to.all|length < message.sent_by.added_phone_numbers.all|length %}
+                                            <h3>To be sent to {{ message.send_to.all | length }} contact{{ message.send_to.all | length | pluralize }}</h3>
+                                        {% elif message.send_to.all|length == message.sent_by.added_phone_numbers.all|length %}
+                                            <h3>To be sent to all contacts</h3>
+                                        {%  endif %}
                                     {% endif %}
-                                    <p>{{ message.date_sent| date:'M d y' }}</p>
+                                    <p>
+                                        {% if message.is_sent %}
+                                            {{ message.date_sent|mytimesincer }}
+                                        {% else %}
+                                            {{ message.date_created|mytimesincer }}
+                                        {% endif %}
+                                    </p>
                                 </div>
                                 <p class="succinct">{{ message.message | truncatewords:10 }}.</p>
                             </div>
                             <div class="message_content">
                                 <p>{{ message.message | linebreaks | urlize | telify }}</p>
                                 <p id="minor">
-                                {% if message.sent_to.all|length  > 1%}
+                                {% if message.sent_to.all|length  > 0 and message.is_sent %}
                                     <a>See recipients</a> - 
+                                {% elif message.sent_to.all|length == 0 and not message.is_sent and not message.is_draft %}
+                                    <a style="color: coral !important;">See recipients</a> - 
+                                {% elif message.sent_to.all|length == 0 and not message.is_sent and not message.is_draft %}
+                                    <a style="color: #888 !important;">See recipients</a> - 
                                 {% endif %}
-                                {{ message.date_sent| time:'G:i' }}</p>
+                                {{ message.date_sent| time:'H:i' }}</p>
                                 <div class="retry_del">
-                                    {% if not message.is_sent %}
+                                    {% if not message.is_sent and not message.is_draft %}
                                         <span><a href="{% url 'retry' %}?type=sms&&pk={{message.id}}">retry</a></span>
+                                    {% elif not message.is_sent and message.is_draft %}
+                                        <span><a href="{% url 'retry' %}?type=sms&&pk={{message.id}}">send</a></span>
+                                        <span><a style="color: #888 !important;" id="{{message.id}}" class="edit_draft">edit</a></span>
                                     {% endif %}
                                     <span id="del_btn">delete</span>
                                 </div>
                             </div>
-                            {% if message.sent_to.all|length  > 1%}
+                            {% if message.sent_to.all|length  >= 0 and message.is_sent %}
                                 <div class="recipients">
                                     <div>
-                                        <h3>Sent to</h3>
+                                        <h3>Sent to - {{ message.sent_to.all | length }}</h3>
                                         <img src="{% static 'images/previous.svg' %}" alt="">
                                     </div>
                                     <ul>
                                         {% for recipient in message.sent_to.all %}
                                             <li>{{ recipient }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% elif message.sent_to.all|length == 0 and not message.is_sent %}
+                                <div class="recipients">
+                                    <div>
+                                        {% if not message.is_draft %}
+                                            <h3 style="color: #555 !important;">Failed to send to - {{ message.send_to.all | length }}</h3>
+                                        {% elif message.is_draft %}
+                                            <h3 style="color: #555 !important;">To be sent to - {{ message.send_to.all | length }}</h3>
+                                        {% endif %}
+                                        <img src="{% static 'images/previous.svg' %}" alt="">
+                                    </div>
+                                    <ul>
+                                        {% for recipient in message.send_to.all %}
+                                            {% if not message.is_draft %}
+                                                <li style="color: hsl(39, 78%, 80%) !important;">{{ recipient }}</li>
+                                            {% elif message.is_draft %}
+                                                <li style="color: #999 !important;">{{ recipient }}</li>
+                                            {% endif %}
                                         {% endfor %}
                                     </ul>
                                 </div>
@@ -191,6 +236,7 @@
                 <textarea id="message" placeholder="Enter message here" required maxlength="160" minlength="10" title="Type in your message" autofocus></textarea>
                 <img id="send_btn" src="{% static 'images/send2.svg' %}" alt="send">
             </div>
+            <p id="draft">Save as draft</p>
         </form>
 
         <div class="confirm_send_popup">
@@ -229,17 +275,17 @@
                     {% if 'info' in message.tags %}
                         <div class="toast info">
                             <img src="{% static 'images/info2.svg' %}" alt="" style="width: 20px; height: 20px;">
-                            <p>{{ message }}</p>
+                            <p>{{ message|showHTML5 }}</p>
                         </div>
                     {% elif  'success' in message.tags %}
                         <div class="toast success">
                             <img src="{% static 'images/tick.svg' %}" alt="" style="width: 20px; height: 20px;">
-                            <p>{{ message }}</p>
+                            <p>{{ message|showHTML5 }}</p>
                         </div>
                     {% elif  'error' in message.tags %}
                         <div class="toast error">
                             <img src="{% static 'images/cancel.svg' %}" alt="" style="width: 20px; height: 20px;">
-                            <p>{{ message }}</p>
+                            <p>{{ message|showHTML5 }}</p>
                         </div>
                     {% endif %}
                 {% endfor %}
@@ -283,7 +329,7 @@
                 document.querySelector('.lds-ellipsis').querySelectorAll('div').forEach(div => {
                     div.classList.remove('play');
                 })
-            }, 200);
+            }, 100);
             
         };
     };
@@ -350,6 +396,25 @@
                 });
             }, 500)
         }
+
+        // scroll to last edited draft
+        if (document.querySelector('.drafted_message')){
+            var drafts = document.querySelectorAll('.drafted_message');
+            var last_saved_draft_id = '{{ request.session.last_save_request_sms_draft_id }}';
+            var last_edited_draft_id = '{{ request.session.last_edit_request_sms_draft_id }}';
+            if (last_saved_draft_id == last_edited_draft_id){
+                drafts.forEach(draft => {
+                    if (draft.id == last_saved_draft_id){
+                        draft.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                        draft.parentElement.querySelector('.message_summary').click();
+                    };
+                });
+            };
+            
+        };
 
         // adds event listener to the scroll button
         document.querySelector('.jump_page').addEventListener('click', () => {
@@ -575,10 +640,11 @@
 
                         if(document.querySelector('#phone_no_file').files.length != 0){
                             var file_name = document.querySelector('#phone_no_file').files[0].name;
+                            var file_type = document.querySelector('#phone_no_file').files[0].type;
                             var file_size_int = document.querySelector('#phone_no_file').files[0].size;
                             var file_size = returnFileSize(file_size_int);
                             document.querySelector('.file_name').querySelector('p').innerText = file_name + ' (' + file_size + ')';
-                            if (fileSizeDoesNotExceed(file_size_int, 1048576)){
+                            if (fileSizeDoesNotExceed(file_size_int, 1048576) && (file_type == 'text/plain' || file_type == 'text/csv')){
                                 proceedButton.disabled = false;
                                 proceedButton.style.pointerEvents = 'auto';
                             }
@@ -617,9 +683,10 @@
                         if(document.querySelector('#phone_no_file').files.length != 0){
                             var file_name = document.querySelector('#phone_no_file').files[0].name;
                             var file_size_int = document.querySelector('#phone_no_file').files[0].size;
+                            var file_type = document.querySelector('#phone_no_file').files[0].type;
                             var file_size = returnFileSize(file_size_int);
                             document.querySelector('.file_name').querySelector('p').innerText = file_name + ' (' + file_size + ')';
-                            if (fileSizeDoesNotExceed(file_size_int, 1048576)){
+                            if (fileSizeDoesNotExceed(file_size_int, 1048576) && (file_type == 'text/plain' || file_type == 'text/csv')){
                                 proceedButton.disabled = false;
                                 proceedButton.style.pointerEvents = 'auto';
                             }
@@ -680,9 +747,10 @@
                     if(document.querySelector('#phone_no_file').files.length != 0){
                         var file_name = document.querySelector('#phone_no_file').files[0].name;
                         var file_size_int = document.querySelector('#phone_no_file').files[0].size;
+                        var file_type = document.querySelector('#phone_no_file').files[0].type;
                         var file_size = returnFileSize(file_size_int);
                         document.querySelector('.file_name').querySelector('p').innerText = file_name + ' (' + file_size + ')';
-                        if (fileSizeDoesNotExceed(file_size_int, 1048576)){
+                        if (fileSizeDoesNotExceed(file_size_int, 1048576) && (file_type == 'text/plain' || file_type == 'text/csv')){
                             proceedButton.disabled = false;
                             proceedButton.style.pointerEvents = 'auto';
                         }
@@ -706,6 +774,14 @@
     };
 
     window.onclick = (event) => {
+
+        if (document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.toggle('show_menu');
+        }
+        else if (!document.querySelector('.menu').contains(event.target) && !document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.remove('show_menu');
+        }
+
         var messages = document.querySelectorAll('.message');
         // close notification shade on outside click
         if(document.querySelector('.notifications') && !document.querySelector('.notification_icon').contains(event.target) && !document.querySelector('.notifications').contains(event.target) && document.querySelector('.notifications').classList.contains('open_shade')){
@@ -730,6 +806,11 @@
             && !document.querySelector('.confirm_send_popup').contains(event.target) && !document.querySelector('.confirm_send_popup').classList.contains('show_confirm_send_popup')) {
             document.querySelector('.message_popup').classList.add('remove_message_popup');
             document.querySelector('.message_popup').classList.remove('show_message_popup');
+            setTimeout(() => {
+                document.querySelector('.message_popup').querySelector('#draft').innerText = 'Save as draft';
+                document.querySelector('.message_popup').querySelector('#send_btn').style.display = 'block';
+                document.querySelector('.message_popup').querySelector('label[for=message]').innerText = 'Enter message';
+            }, 500);
             document.querySelectorAll('form').forEach(form => {
                 form.reset();
                 document.querySelector('.file_name').querySelector('p').innerText = 'No file selected';
@@ -746,6 +827,35 @@
                 message.querySelector('.recipients').classList.remove('show_recipients');
                 document.querySelector('body').classList.remove('stop_scroll');
             };
+
+            if(message.querySelector('.edit_draft') && message.querySelector('.edit_draft').contains(event.target)){
+                $.ajax({
+                    url: '{% url "edit-draft" %}',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        'draft_id': message.querySelector('.edit_draft').id,
+                        'object_type': 'sms',
+                    },
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    success: function(response){
+                        if (response['success'] == 'true'){
+                            document.querySelector('.message_popup').querySelector('#draft').innerText = 'Save draft';
+                            document.querySelector('.message_popup').querySelector('#send_btn').style.display = 'none';
+                            document.querySelector('.message_popup').querySelector('label[for=message]').innerText = 'Edit draft';
+                            document.querySelector('.message_popup').querySelector('#message').value = response['data']['message'];
+                            document.querySelector('.message_popup').classList.add('show_message_popup');
+                        }
+                        else if(response['success'] == 'false'){
+                            console.log(response['error']);
+                        }
+                    },
+                });
+            };
+
         });
 
         
@@ -871,7 +981,20 @@
         message_field.addEventListener('keyup', (e) => {
             e.stopImmediatePropagation()
             clearTimeout(timeout);
-            var timeout = setTimeout(send, sendAfter);  
+            var timeout = setTimeout(send, sendAfter);
+            
+            setTimeout(() => {
+                var message = document.querySelector('#message').value;
+                if (message != '' && message.length >= 10 && message.length <= 160){
+                    document.querySelector('#draft').style.pointerEvents = 'auto';
+                    if(document.querySelector('.help_text').style.display != 'none'){
+                        document.querySelector('#draft').style.pointerEvents = 'none';
+                    };
+                }
+                else{
+                    document.querySelector('#draft').style.pointerEvents = 'none';
+                }; 
+            }, sendAfter * 2)
         });
 
         
@@ -908,6 +1031,65 @@
                 });
             }; 
         });
+
+
+        document.querySelector('#draft').addEventListener('click', (e) =>{
+            e.stopImmediatePropagation();
+            
+            var addFormData = {
+                'phone_numbers': document.querySelector('#phone_no').value,
+            };
+            var selected_contacts = [];
+            document.querySelectorAll('.contact').forEach(contact => {
+                if (contact.querySelector('input').checked == true){
+                    selected_contacts.push(contact.querySelector('input').value);
+                };
+            });
+            var selectFormData = {
+                'all_contacts': document.querySelector('#all').checked,
+                'selected_contacts': selected_contacts,
+            };
+            var messageFormData = {
+                'message': document.querySelector('#message').value,
+            };
+            var payload = {
+                'addFormData': addFormData,
+                'selectFormData': selectFormData,
+                'messageFormData': messageFormData,
+                'action': 'save_message_draft',
+            };
+
+            var file = document.querySelector('#phone_no_file').files[0];
+            var formData = new FormData();
+            formData.append('file', file);
+            formData.append('payload', JSON.stringify(payload))
+            
+            // sends data for message to be sent
+            $.ajax({
+                url: '{% url "send" %}',
+                method: 'POST',
+                contentType: false,
+                dataType: 'json',
+                data: formData,
+                processData: false,
+                cache: false,
+                headers: {
+                    'X-CSRFToken': getCookie("csrftoken"),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(data){
+                    if (data['success'] == 'true' || 'false'){
+                        document.querySelector('.message_popup').classList.add('remove_message_popup');
+                        document.querySelector('.message_popup').classList.remove('show_message_popup');
+        
+                        setTimeout(() => {
+                            window.location.reload()
+                        }, 200);
+                    }
+                }
+            });
+        });
+
 
         document.querySelector('.yes').addEventListener('click', (e) => {
             e.stopImmediatePropagation();

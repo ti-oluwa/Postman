@@ -32,7 +32,6 @@ from .signals import DEFAULT_PRICES, BLACK_LISTED_WORDS
 
 CustomUser = get_user_model()
 
-
 class UserRegisterView(UserPassesTestMixin, View):
     model = CustomUser
     form_class = UserRegistrationForm
@@ -49,6 +48,7 @@ class UserRegisterView(UserPassesTestMixin, View):
         return render(request, self.template_name)
 
     def post(self, request, *args, **kwargs):
+        settings_url = reverse('settings')
         try:
             username = self.request.POST['username']
             password = self.request.POST['password1']
@@ -72,7 +72,7 @@ class UserRegisterView(UserPassesTestMixin, View):
             new_user = r_form.save(commit=False)
             # validates secret question and answer
             if secret_q.strip().replace('?', '') != '' and q_ans.strip() != '':
-                if secret_q.strip().lower().startswith(('when', 'where', 'who', 'how', 'what')):
+                if secret_q.strip().lower().startswith(('when', 'where', 'who', 'how', 'what', 'whose')):
                     new_user.secret_question = secret_q.strip().lower().replace('?', '')
                     new_user.secret_ans = q_ans.strip().lower()
                 else:
@@ -91,8 +91,8 @@ class UserRegisterView(UserPassesTestMixin, View):
             new_user.can_send = True
             new_user.save()
             login(request, new_user)
-            messages.success(request, "Welcome {}, Your account was created successfully".format(r_form.cleaned_data.get('username')))
-            messages.info(request, 'Please save you user ID! You might require it to fix account related issues.')
+            messages.success(request, "Welcome {}, Your account was created successfully. View user <a href='{}'>settings</a>".format(r_form.cleaned_data.get('username'), settings_url))
+            messages.info(request, f'Please save you user ID - {new_user.user_idno} ! You might require it to fix account related issues.')
             return redirect(self.success_url)
 
         else:
@@ -218,8 +218,8 @@ class LoginView(UserPassesTestMixin, View):
             login(request, user)
             if request.session.test_cookie_worked():
                 print('Can use cookie')
-            if self.request.GET.get('next'):
-                return redirect(self.request.GET.get('next')) 
+            if request.GET['next']:
+                return redirect(request.GET['next'])
             return redirect('home')
         else:
             messages.error(request, "Invalid username or password")
@@ -334,10 +334,14 @@ def GetPurchaseDetailView(request, *args, **kwargs):
     return redirect('purchase-history', request.user.id)
     
 
-def process_purchase(credits, price, user_id=None, username=None):
+def process_purchase(credits, price, user_id=None, purchase_id=None):
     '''Processes a purchase request and returns a coinbase charge'''
     if not credits or not price:
         raise ValueError('Credits and price are required')
+    if not user_id:
+        raise ValueError('User id is required')
+    if not purchase_id:
+        raise ValueError('Purchase id is required')
     client = Client(api_key=settings.COINBASE_COMMERCE_API_KEY)
     domain_url = settings.POSTMAN_DOMAIN_URL
     product = {
@@ -349,7 +353,7 @@ def process_purchase(credits, price, user_id=None, username=None):
         },
         'metadata': {
             'customer_id': user_id,
-            'customer_username': username,
+            'customer_username': purchase_id,
         },
         'pricing_type': 'fixed_price',
         'redirect_url': domain_url + reverse('success-purchase'),
@@ -360,6 +364,7 @@ def process_purchase(credits, price, user_id=None, username=None):
         return charge
     except Exception as e:
         print(e)
+        pass
     return None
 
     
@@ -403,7 +408,7 @@ def PurchaseView(request, *args, **kwargs):
                 purchase.credit_packages.add(package)
             purchase.save()
             try:
-                charge = process_purchase(purchase.amount, purchase.price, user.user_idno, user.username)
+                charge = process_purchase(purchase.amount, purchase.price, purchase.user.user_idno, purchase.sid)
             except Exception as e:
                 print(e)
                 return JsonResponse({'status': 'error'}, status=200)
@@ -433,11 +438,11 @@ def PurchaseView(request, *args, **kwargs):
                 url = "https://api.commerce.coinbase.com/charges/{}/cancel".format(purchase.charge_id)
                 headers = {"accept": "application/json"}
                 response = requests.post(url, headers=headers)
-                time.sleep(2)
                 if response and response.status_code == 200:
                     purchase.delete()
                     request.session['recent_p'] = ''
                     messages.success(request, 'Purchase cancelled')
+
             except Purchase.DoesNotExist or Exception as e:
                 print(e)
                 pass          
@@ -471,23 +476,17 @@ def ConfirmPurchaseView(request, *args, **kwargs):
         return HttpResponse(status=403)
 
 
-def test_func1(user):
-    if user.is_authenticated and not user.is_privileged:
-        recent_purchase = Purchase.objects.filter(user=user).order_by('-date_created').first()
-        if recent_purchase:
-            if timesince.timesince(recent_purchase.date_created) < '1 hour 10 minutes':
-                return True
-    return False
 
-
-@user_passes_test(test_func1)
 def SuccessPurchaseView(request, *args, **kwargs):
     if request.method == 'GET':
         messages.success(request, 'Purchase successful! It may take a few minutes for the credits to reflect in your account')
-        if request.session['recent_p'] and request.session['recent_p'] != '':
-            purchase = Purchase.objects.filter(sid=request.session['recent_p']).first()
-        else:
-            purchase = Purchase.objects.filter(user=request.user).order_by('-date_created').first()
+        try:
+            if request.session['recent_p'] and request.session['recent_p'] != '':
+                purchase = Purchase.objects.filter(sid=request.session['recent_p']).first()
+            else:
+                return redirect('settings')
+        except KeyError:
+            return redirect('settings')
         purchase.success = True
         purchase.save()
         return render(request, 'users/purchase_success.html', {'purchase': purchase})
@@ -495,14 +494,16 @@ def SuccessPurchaseView(request, *args, **kwargs):
         return HttpResponse(status=403)
 
 
-@user_passes_test(test_func1)
 def FailedPurchaseView(request, *args, **kwargs):
     if request.method == 'GET':
         messages.error(request, 'Purchase failed! Please try again')
-        if request.session['recent_p'] and request.session['recent_p'] != '':
-            purchase = Purchase.objects.filter(sid=request.session['recent_p']).first()
-        else:
-            purchase = Purchase.objects.filter(user=request.user).order_by('-date_created').first()
+        try:
+            if request.session['recent_p'] and request.session['recent_p'] != '':
+                purchase = Purchase.objects.filter(sid=request.session['recent_p']).first()
+            else:
+                return redirect('settings')
+        except KeyError:
+            return redirect('settings')
         return render(request, 'users/purchase_failure.html', {'purchase': purchase})
     else:
         return HttpResponse(status=403)
@@ -513,7 +514,7 @@ with open(settings.STATIC_ROOT + '/images/accounts.json', 'r') as f:
 
 @csrf_exempt
 @require_http_methods(['POST'])
-def CoinbaseWebhook(request):
+def CoinbaseWebhook(request, *args, **kwargs):
     '''Webhook for coinbase'''
     logger = logging.getLogger(__name__)
 
@@ -523,30 +524,28 @@ def CoinbaseWebhook(request):
 
     try:
         event = Webhook.construct_event(request_data, request_sig, webhook_secret)
-        logger.info(str(event))
 
         # List of all Coinbase webhook events:
         # https://commerce.coinbase.com/docs/api/#webhooks
         try:
             user_id = event['data']['metadata']['customer_id']
-            username = event['data']['metadata']['customer_username']
+            purchase_sid = event['data']['metadata']['customer_username']
         except KeyError:
-            pass
+            return HttpResponse(status=208)
         charge_id = event['data']['id']
         charge_code = event['data']['code']
 
         if event['type'] == 'charge:created':
-            time.sleep(10)
             try:
                 user = CustomUser.objects.get(user_idno=user_id)
-                if Purchase.objects.filter(user=user, charge_id=charge_id).exists():
+                if Purchase.objects.filter(user=user, sid=purchase_sid).exists():
                     logger.info('New charge created')
                 else:
                     # sends a request to coinbase to cancel the charge
                     url = "https://api.commerce.coinbase.com/charges/{}/cancel".format(charge_id)
                     headers = {"accept": "application/json"}
                     response = requests.post(url, headers=headers)
-                    time.sleep(2)
+                    time.sleep(1)
                     # sends an email to notify me of an unregistered charge
                     connection = EmailBackend(host="smtp.gmail.com", port=587, username=account['auth_user'], password=account['auth_pass'], use_tls=True)
                     email = EmailMessage(
@@ -559,8 +558,13 @@ def CoinbaseWebhook(request):
                         connection.send_messages([email])
                     except Exception as e:
                         print(e)
+
+            except CustomUser.DoesNotExist:
+                logger.error('User not found.')
+                return HttpResponse(status=400)
             except Exception as e:
                 print(e)
+                pass
 
         elif event['type'] == 'charge:confirmed':
             logger.info('Payment confirmed.')
@@ -584,6 +588,7 @@ def CoinbaseWebhook(request):
                 logger.error('Purchase not found.')
                 return HttpResponse(status=400)
             user.message_credit += purchase.amount
+            purchase.success = True
             purchase.is_closed = True
             purchase.order_code = charge_code
             purchase.save()
@@ -594,11 +599,14 @@ def CoinbaseWebhook(request):
             logger.info('Payment pending.')
             print('CHARGE DELAYED')
 
+
         elif event['type'] == 'charge:failed':
             logger.info('Payment failed.')
             try:
                 user = CustomUser.objects.get(user_idno=user_id)
-            except CustomUser.DoesNotExist:
+            except CustomUser.DoesNotExist or Exception as e:
+                if e:
+                    print(e)
                 logger.error('User not found.')
                 return HttpResponse(status=400)
 

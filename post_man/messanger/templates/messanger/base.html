@@ -24,6 +24,7 @@
                     <li><a href="{% url 'messages' %}">SMS</a></li>
                     <li><a href="{% url 'emails' %}">Mail</a></li>
                     {% if request.user.is_authenticated %}
+                        <li><a href="{% url 'contacts' %}">Contacts</a></li>
                         <li><a href="{% url 'settings' %}">Settings</a></li>
                         <li><a href="{% url 'logout' %}">Logout</a></li>
                     {% else %}
@@ -31,6 +32,28 @@
                         <li><a href="{% url 'register' %}">Sign up</a></li>
                     {% endif %}
                 </ul>
+                <div class="dropdown_menu">
+                    <div class="menu_icon">
+                        <div class="round"></div>
+                        <div class="round"></div>
+                        <div class="round"></div>
+                    </div>
+                    <ul class="menu">
+                        <li><a href="{% url 'messages' %}">SMS</a></li>
+                        <li><a href="{% url 'emails' %}">Mail</a></li>
+                        {% if request.user.is_authenticated %}
+                            <li><a href="{% url 'contacts' %}">Contacts</a></li>
+                            {% if request.user.purchases %}
+                                <li><a href="{% url 'purchase-history' request.user.id %}">Purchases</a></li>
+                            {% endif %}
+                            <li><a href="{% url 'settings' %}">Settings</a></li>
+                            <li><a href="{% url 'logout' %}">Logout</a></li>
+                        {% else %}
+                            <li><a href="{% url 'login' %}">Login</a></li>
+                            <li><a href="{% url 'register' %}">Sign up</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
             </div>
         </div>
     </header>
@@ -80,7 +103,7 @@
         var scrollPosition = document.documentElement.scrollTop;
         if (scrollPosition >= window.innerHeight * 0.2 && scrollPosition > oldScrollPosition) {
             document.querySelector('header').classList.add('hide');
-            oldScrollPosition = scrollPosition       
+            oldScrollPosition = scrollPosition;       
         }
         else{
             document.querySelector('header').classList.remove('hide');

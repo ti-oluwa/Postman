@@ -67,17 +67,17 @@
                 {% if 'info' in message.tags %}
                     <div class="toast info">
                         <img src="{% static 'images/info2.svg' %}" alt="" style="width: 20px; height: 20px;">
-                        <p>{{ message }}</p>
+                        <p>{{ message|showHTML5 }}</p>
                     </div>
                 {% elif  'success' in message.tags %}
                     <div class="toast success">
                         <img src="{% static 'images/tick.svg' %}" alt="" style="width: 20px; height: 20px;">
-                        <p>{{ message }}</p>
+                        <p>{{ message|showHTML5 }}</p>
                     </div>
                 {% elif  'error' in message.tags %}
                     <div class="toast error">
                         <img src="{% static 'images/cancel.svg' %}" alt="" style="width: 20px; height: 20px;">
-                        <p>{{ message }}</p>
+                        <p>{{ message|showHTML5 }}</p>
                     </div>
                 {% endif %}
             {% endfor %}
@@ -122,6 +122,13 @@
             // close notification shade on outside click
             if(document.querySelector('.notifications') && !document.querySelector('.notification_icon').contains(event.target) && !document.querySelector('.notifications').contains(event.target) && document.querySelector('.notifications').classList.contains('open_shade')){
                 document.querySelector('.notifications').classList.remove('open_shade')
+            }
+
+            if (document.querySelector('.menu_icon').contains(event.target)){
+                document.querySelector('.menu').classList.toggle('show_menu');
+            }
+            else if (!document.querySelector('.menu').contains(event.target) && !document.querySelector('.menu_icon').contains(event.target)){
+                document.querySelector('.menu').classList.remove('show_menu');
             }
 
         }

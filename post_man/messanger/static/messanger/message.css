@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css?family=Manrope');
 @import url('https://fonts.googleapis.com/css?family=Raleway');
+@import url('https://fonts.googleapis.com/css?family=DM+Sans');
 
 *{
     margin: 0;
@@ -195,6 +196,10 @@ p, span, a{
 
 .failed_message{
     background-color: hsl(39, 78%, 80%) !important;
+}
+
+.drafted_message{
+    background-color: #d0d0d0 !important;
 }
 
 .select_all{
@@ -596,7 +601,7 @@ p, span, a{
     max-width: 300px;
     cursor: pointer;
     color: #333;
-    background-color: #ddd;
+    background-color: hsl(39, 78%, 80%);
     padding: 5px 10px;
     border-radius: 4px;
     transition: 0.1s ease-in;
@@ -976,6 +981,20 @@ p, span, a{
     transition: 0.1s ease-in;
 }
 
+.message_popup #draft{
+    font-size: clamp(14px, 2vw, 16px);
+    font-weight: 600;
+    color: #888;
+    margin: 10px 0;
+    font-family: "DM Sans";
+    cursor: pointer;
+    transition: all 0.1s ease-in;
+    pointer-events: none;
+}
+
+.message_popup #draft:hover{
+    color: #555;
+}
 
 
 /* Confirm message popup */
@@ -1422,7 +1441,7 @@ p, span, a{
         background-color: hsla(0, 61%, 70%, 0.8);
     }
     .add_contact label[for=phone_no_file]:hover,  .add_contact label[for=address_file]:hover{
-        background-color: #ccc;
+        background-color: hsla(34, 78%, 63%, 0.9);
     }
 
     .message_content #minor a:hover{

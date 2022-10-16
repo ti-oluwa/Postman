@@ -25,4 +25,12 @@
 {% endblock content %}
     
 {% block script %}
+    window.onclick = (event) => {
+        if (document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.toggle('show_menu');
+        }
+        else if (!document.querySelector('.menu').contains(event.target) && !document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.remove('show_menu');
+        }
+    }
 {% endblock script %}

@@ -1,0 +1,577 @@
+{% extends 'messanger/base.html' %}
+
+{% load static %}
+{% block title %}
+    <title>Postman | {{ request.user.username }}'s contacts</title>
+{% endblock title %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'messanger/contacts.css' %}">
+{% endblock styles %}
+
+
+{% block content %}
+    <div class="contacts">
+        <div class="contacts_header">
+            <h3 class="visible" id="phone_no">Numbers</h3>
+            <h3 id="email_address">Emails</h3>
+        </div>
+        <div class="wrapper">
+            <!-- PHONE NUMBERS -->
+            <div class="contact_items" id="numbers" style="display: none;">
+                <div class="select_all">
+                    <input type="checkbox" id="select_all">
+                    <label for="select_all">Select all</label>
+                </div>
+                {% for contact in phone_contacts %}
+                    <!--  CONTACT -->
+                    <div class="contact">
+                        <input type="checkbox" name="number" id="{{ contact.id }}">
+                        <label for="{{ contact.id }}" class="contact_detail">{{ contact.number }}</label>
+                        <div class="edit_contact_detail">
+                            <input type="text" title="Edit number and save" pattern="^\+(?:[0-9] ?){10,14}[0-9]$" value="{{ contact.number }}">
+                            <p class="ok" id="save_edit">Save</p>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="empty">
+                        <img src="{% static 'images/no-result-mon.svg' %}" alt="">
+                    </div>
+                {% endfor %}
+
+                <div class="options_tab">
+                    <div class="option" id="add_to_group"><img src="{% static 'images/add-group.svg' %}" alt=""></div>
+                    <div class="option only_add_contact" id="add_contact"><img src="{% static 'images/add-contact2.svg' %}" alt=""></div>
+                    <div class="option" id="delete_contact"><img src="{% static 'images/bin.svg' %}" alt=""></div>
+                    <div class="edit_btn" id="edit_contact"><img src="{% static 'images/edit1.svg' %}" alt=""></div>
+                </div>
+
+                <form action="{% url 'contacts' %}?object_type=phone_number" method="post" class="add_contact_popup" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <h3>New Contact</h3>
+                    <div class="form_field">
+                        <label for="new_contact" class="form_label">Phone numbers</label>
+                        <input type="text" class="form_input" id="phone_no_field" name="new_contact" id="new_contact" pattern="^(?:\+(?:[0-9] ?){10,14}[0-9](, ?)?)+$" title="Enter the new phone numbers you want to add separated with a comma. Numbers must conform with the E.164 number plan.">
+                    </div>
+                    <div class="form_field">
+                        <input type="file" class="form_input" accept=".txt, .csv" name="contact_file" id="contact_file" class="contact_file">
+                        <label for="contact_file" class="form_label" title="You can upload file of 1MB max containing the phone numbers you want to add">Upload a file [*.txt, *.csv]</label>
+                        <p class="file_detail">No file selected</p>
+                    </div>
+                    <button id="add_btn">Add</button>
+                </form>
+            </div>
+
+            <!-- EMAILS -->
+            <div class="contact_items" id="emails" style="display: none;">
+                <div class="select_all">
+                    <input type="checkbox" id="select_all1">
+                    <label for="select_all1">Select all</label>
+                </div>
+                {% for contact in email_contacts %}
+                    <!--  CONTACT -->
+                    <div class="contact">
+                        <input type="checkbox" name="email" id="{{ contact.id }}">
+                        <label for="{{ contact.id }}" class="contact_detail">{{ contact.address }}</label>
+                        <div class="edit_contact_detail">
+                            <input type="text" title="Edit address and save" pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}$" value="{{ contact.address }}">
+                            <p class="ok" id="save_edit">Save</p>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="empty">
+                        <img src="{% static 'images/no-result-mon.svg' %}" alt="">
+                    </div>
+                {% endfor %} 
+                
+                <div class="options_tab">
+                    <div class="option" id="add_to_group"><img src="{% static 'images/add-group.svg' %}" alt=""></div>
+                    <div class="option only_add_contact" id="add_contact"><img src="{% static 'images/add-contact2.svg' %}" alt=""></div>
+                    <div class="option" id="delete_contact"><img src="{% static 'images/bin.svg' %}" alt=""></div>
+                    <div class="edit_btn" id="edit_contact"><img src="{% static 'images/edit1.svg' %}" alt=""></div>
+                </div>
+                
+                <form action="{% url 'contacts' %}?object_type=email" method="post" class="add_contact_popup" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <h3>New Contact</h3>
+                    <div class="form_field">
+                        <label for="new_contact" class="form_label">Email addresses</label>
+                        <input type="text" class="form_input" name="new_contact" id="new_contact" pattern="^(?:[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}(, ?)?)+$" title="Enter the new email addresses you want to add separated with a comma.">
+                    </div>
+                    <div class="form_field">
+                        <input type="file" class="form_input" accept=".txt, .csv" name="contact_file" id="contact_file1" class="contact_file">
+                        <label for="contact_file1" class="form_label" title="You can upload file of 1MB max containing the email addresses you want to add">Upload a file [*.txt, *.csv]</label>
+                        <p class="file_detail">No file selected</p>
+                    </div>
+                    <button id="add_btn">Add</button>
+                </form>
+
+            </div>
+
+        </div>        
+    </div>
+
+    {% if messages %}
+        <!-- notifications -->
+        <div class="notification_icon">
+            <img src="{% static 'images/bell-ring.svg' %}" alt="">
+            {% if messages %}
+                <span>{{ messages|length }}</span>
+            {% endif %}
+        </div>
+        <div class="notifications">
+            <img id="sub_icon" src="{% static 'images/bell.svg' %}" alt="" style="width: 30px; height: 30px;">
+            {% for message in messages %}
+                {% if 'info' in message.tags %}
+                    <div class="toast info">
+                        <img src="{% static 'images/info2.svg' %}" alt="" style="width: 20px; height: 20px;">
+                        <p>{{ message }}</p>
+                    </div>
+                {% elif  'success' in message.tags %}
+                    <div class="toast success">
+                        <img src="{% static 'images/tick.svg' %}" alt="" style="width: 20px; height: 20px;">
+                        <p>{{ message }}</p>
+                    </div>
+                {% elif  'error' in message.tags %}
+                    <div class="toast error">
+                        <img src="{% static 'images/cancel.svg' %}" alt="" style="width: 20px; height: 20px;">
+                        <p>{{ message }}</p>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript">
+    function returnFileSize(number) {
+        if (number < 1024) {
+          return `${number} bytes`;
+        } else if (number >= 1024 && number < 1048576) {
+          return `${(number / 1024).toFixed(1)} KB`;
+        } else if (number >= 1048576) {
+          return `${(number / 1048576).toFixed(1)} MB`;
+        };
+    };
+
+    window.onclick = (event) => {
+
+        // close notification shade on outside click
+        if(document.querySelector('.notifications') && !document.querySelector('.notification_icon').contains(event.target) && !document.querySelector('.notifications').contains(event.target) && document.querySelector('.notifications').classList.contains('open_shade')){
+            document.querySelector('.notifications').classList.remove('open_shade')
+        }
+        const accept_btn = document.getElementById('accept');
+        const decline_btn = document.getElementById('decline');
+        const contact_items = document.querySelectorAll('.contact_items')
+
+        if(document.querySelector('.cookie_msg') && !document.querySelector('.cookie_msg').contains(event.target) && !document.querySelector('.cookie_msg').classList.contains('close_cookie')){
+            document.querySelector('.cookie_msg').classList.add('close_cookie');
+        }
+        if (accept_btn && accept_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'accept',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        }
+        else if (decline_btn && decline_btn.contains(event.target)){
+            $.ajax({
+                url: "{% url 'use-cookie' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                    'choice': 'decline',
+                },
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                success: function(response){
+                    document.querySelector('.cookie_msg').classList.add('close_cookie');
+                }
+            });
+        };
+
+        contact_items.forEach(contact_item => {
+            var add_contact = contact_item.querySelector('#add_contact');
+            var add_to_group = contact_item.querySelector('#add_to_group');
+            var delete_contact = contact_item.querySelector('#delete_contact');
+            var add_form = contact_item.querySelector('.add_contact_popup');
+            if (!add_form.contains(event.target) && !add_contact.contains(event.target)){
+                add_form.classList.remove('show_add_form');
+                add_contact.classList.remove('active');
+            }
+        });
+
+        if (document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.toggle('show_menu');
+        }
+        else if (!document.querySelector('.menu').contains(event.target) && !document.querySelector('.menu_icon').contains(event.target)){
+            document.querySelector('.menu').classList.remove('show_menu');
+        }
+
+        var contact_headers = document.querySelector('.contacts_header').querySelectorAll('h3');
+        contact_headers.forEach(contact_header => {
+            if (contact_header.contains(event.target)){
+                event.stopImmediatePropagation();
+                $.ajax({
+                    url: "{% url 'contact-actions' %}",
+                    type: "POST",
+                    dataType: 'json',
+                    data: {
+                        'action': 'update_last_active_tab',
+                        'payload': JSON.stringify(contact_header.id),
+                    },
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    success: function(response){
+                    },
+                    error: function(response){
+                        console.log(response);
+                    }
+                });
+            }
+        });
+    };
+
+    window.onload = () => {
+
+        // opens notifications shade
+        if (document.querySelector('.notifications')){
+            document.querySelector('.notification_icon').querySelector('img').classList.add('blink_img');
+            document.querySelector('.notification_icon').classList.add('blink_icon');
+            document.querySelector('.notification_icon').addEventListener('click', () => {
+                document.querySelector('.notification_icon').querySelector('img').classList.remove('blink_img');
+                document.querySelector('.notification_icon').classList.remove('blink_icon');
+                document.querySelector('.notifications').classList.toggle('open_shade');
+            })
+        };
+
+        const contact_items = document.querySelectorAll('.contact_items')
+        const phone_no = document.getElementById('phone_no');
+        const email = document.getElementById('email_address');
+        const numbers = document.getElementById('numbers');
+        const emails = document.getElementById('emails');
+
+        numbers.style.display = 'flex';
+        phone_no.addEventListener('click', () => {
+            email.classList.remove('visible');
+            phone_no.classList.add('visible');
+            emails.style.display = 'none';
+            numbers.style.display = 'flex';
+            
+        });
+
+        email.addEventListener('click', () => {
+            phone_no.classList.remove('visible');
+            email.classList.add('visible');
+            numbers.style.display = 'none';
+            emails.style.display = 'flex';
+        });
+
+        // switch between tabs based on last active tab
+        var last_active_tab = "{{ request.session.contacts_last_active_tab }}";
+        if (last_active_tab){
+            last_active_tab = document.querySelector('.contacts_header').querySelector('#'+last_active_tab).click();
+        }
+
+
+        contact_items.forEach(contact_item => {
+
+            var contacts = contact_item.querySelectorAll('.contact');
+            var select_all = contact_item.querySelector('.select_all');
+            var select_all_label = contact_item.querySelector('.select_all').querySelector('label');
+            var options_tab = contact_item.querySelector('.options_tab');
+            var edit_btn = contact_item.querySelector('#edit_contact');
+            var add_contact = contact_item.querySelector('#add_contact');
+            var add_to_group = contact_item.querySelector('#add_to_group');
+            var delete_contact = contact_item.querySelector('#delete_contact');
+            var add_form = contact_item.querySelector('.add_contact_popup');
+            var add_btn = add_form.querySelector('#add_btn');
+            var add_input = add_form.querySelector('input[type="text"]');
+            var contact_file = add_form.querySelector('input[type="file"]');
+            var file_detail = add_form.querySelector('.file_detail');
+            var is_clicked = false;
+            
+            [select_all, select_all_label].forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopImmediatePropagation();
+                    var checked = [];
+                    var no_checked = 0;
+                    if (!is_clicked){
+                        options_tab.classList.add('hide_options');
+                        setTimeout(() => {
+                            options_tab.classList.add('has_more')
+                            add_to_group.classList.add('show_option');
+                            delete_contact.classList.add('show_option');
+                            add_contact.classList.remove('only_add_contact');
+                            options_tab.classList.add('show_more_options');
+                            edit_btn.classList.add('show_edit');
+                            is_clicked = true;
+                        }, 300);
+                    };
+                    
+                    setTimeout(()=>{
+                        contacts.forEach(contact => {
+                            contact.querySelector('.contact_detail').style.display = 'block';
+                            contact.querySelector('.edit_contact_detail').style.display = 'none';
+                            edit_btn.classList.remove('active');
+                            contact.querySelector('input[type=checkbox]').checked = select_all.querySelector('input[type=checkbox]').checked;
+                            checked.push(contact.querySelector('input[type=checkbox]').checked);
+                            if (contact.querySelector('input[type=checkbox]').checked){
+                                no_checked += 1;
+                            };
+                        });
+                        if (checked.every((item) => item == false)){
+                            select_all.querySelector('input').checked = false;
+                            select_all.style.display = 'none';
+                            contacts.forEach(contact => {
+                                contact.querySelector('input[type=checkbox]').style.display = 'none';
+                            });
+
+                            options_tab.classList.remove('show_more_options');
+                            options_tab.classList.add('hide_options');
+                            setTimeout(() => {
+                                options_tab.classList.remove('has_more')
+                                add_to_group.classList.remove('show_option');
+                                delete_contact.classList.remove('show_option');
+                                add_contact.classList.remove('show_option');
+                                add_contact.classList.add('only_add_contact');
+                                options_tab.classList.remove('show_more_options');
+                                edit_btn.classList.remove('show_edit');
+                                options_tab.classList.remove('hide_options');
+                                is_clicked = false;
+                            }, 300);
+                        };
+
+                        if (no_checked > 1){
+                            edit_btn.classList.add('hide_edit');
+                        }else{
+                            edit_btn.classList.remove('hide_edit');
+                        }
+                    }, 100);
+                });
+            });
+            
+            contacts.forEach(contact => {
+                [contact.querySelector('.contact_detail'), contact.querySelector('input[type=checkbox]')].forEach( child => {
+                    child.addEventListener('click', (e) => {
+                        e.stopImmediatePropagation();
+                        if (!is_clicked){
+                            options_tab.classList.add('hide_options');
+                            setTimeout(() => {
+                                options_tab.classList.add('has_more')
+                                add_to_group.classList.add('show_option');
+                                delete_contact.classList.add('show_option');
+                                add_contact.classList.remove('only_add_contact');
+                                options_tab.classList.add('show_more_options');
+                                edit_btn.classList.add('show_edit');
+                                is_clicked = true;
+                            }, 300);
+                        };
+
+                        select_all.style.display = 'flex';
+                        var checked = [];
+                        var no_checked = 0;
+                        contacts.forEach(contact => {
+                            contact.querySelector('.contact_detail').classList.remove('hide_menu');
+                            contact.querySelector('.edit_contact_detail').classList.remove('show');
+                            edit_btn.classList.remove('active');
+                            contact.querySelector('.contact_detail').style.display = 'block';
+                            contact.querySelector('.edit_contact_detail').style.display = 'none';
+                            contact.querySelector('input[type=checkbox]').style.display = 'block';
+                            checked.push(contact.querySelector('input[type=checkbox]').checked);
+                        });
+
+                        for(var i=0; i<checked.length; i++){
+                            if (checked[i] == true){
+                                no_checked += 1;
+                            }
+                        };
+                        
+                        if (checked.every((item) => item == true)){
+                            select_all.querySelector('input').checked = true;
+                        }
+                        else if (checked.every((item) => item == false)){
+                            select_all.querySelector('input').checked = false;
+                            select_all.style.display = 'none';
+                            contacts.forEach(contact => {
+                                contact.querySelector('input[type=checkbox]').style.display = 'none';
+                            });
+                            options_tab.classList.remove('show_more_options');
+                            options_tab.classList.add('hide_options');
+                            setTimeout(() => {
+                                options_tab.classList.remove('has_more')
+                                add_to_group.classList.remove('show_option');
+                                delete_contact.classList.remove('show_option');
+                                add_contact.classList.remove('show_option');
+                                add_contact.classList.add('only_add_contact');
+                                options_tab.classList.remove('show_more_options');
+                                edit_btn.classList.remove('show_edit');
+                                options_tab.classList.remove('hide_options');
+                                is_clicked = false;
+                            }, 300);
+                        }
+                        else{
+                            select_all.querySelector('input').checked = false;
+                        }
+                        
+                        if (no_checked > 1){
+                            edit_btn.classList.add('hide_edit');
+                        }else{
+                            edit_btn.classList.remove('hide_edit');
+                        }
+                        
+                    });
+                    
+                });
+            });
+
+            edit_btn.addEventListener('click', () => {
+                contacts.forEach(contact => {
+                    if (contact.querySelector('input[type=checkbox]').checked){
+                        var contact_id = contact.querySelector('input[type=checkbox]').id;
+                        contact.querySelector('.contact_detail').classList.toggle('hide_menu');
+                        contact.querySelector('.edit_contact_detail').classList.toggle('show');
+                        edit_btn.classList.toggle('active');
+                        var new_contact_detail = contact.querySelector('.edit_contact_detail').querySelector('input');
+                        var save_btn = contact.querySelector('#save_edit');
+                        contact.querySelector('.edit_contact_detail').addEventListener('pointerover', ()=>{
+                           if (new_contact_detail.value == contact.querySelector('.contact_detail').innerText || !new_contact_detail.checkValidity()){
+                                save_btn.style.pointerEvents = 'none';
+                            }
+                            else{
+                                save_btn.style.pointerEvents = 'auto';
+                            }
+                        });
+
+                        save_btn.addEventListener('click', (e)=>{
+                            e.stopImmediatePropagation();
+                            payload = {};
+                            payload['contact_id'] = contact_id;
+                            payload['new_value'] = new_contact_detail.value;
+                            payload['object_type'] = contact_item.id;
+
+                            $.ajax({
+                                type: 'POST',
+                                url: '{% url "contact-actions" %}',
+                                dataType: 'json',
+                                data: {'action': 'edit', 'payload': JSON.stringify(payload)},
+                                headers: {
+                                    'X-CSRFToken': '{{ csrf_token }}',
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                },
+                                success: function(response){
+                                    if (response['success'] == 'true'){
+                                        contact.querySelector('.contact_detail').innerText = new_contact_detail.value;
+                                        contact.querySelector('.contact_detail').classList.toggle('hide_menu');
+                                        contact.querySelector('.edit_contact_detail').classList.toggle('show');
+                                        edit_btn.classList.toggle('active');
+                                    }
+                                    else{
+                                        alert('Something went wrong. Please try again.');
+                                    }
+                                },
+                                error: function(error){
+                                    console.log(error);
+                                }
+                            });
+                        })
+                    }
+                });
+            });
+
+            delete_contact.addEventListener('click', () => {
+                var contact_ids = [];
+                contacts.forEach(contact => {
+                    if (contact.querySelector('input[type=checkbox]').checked){
+                        contact_ids.push(contact.querySelector('input[type=checkbox]').id);
+                    }
+                });
+                payload = {};
+                payload['contact_ids'] = contact_ids;
+                payload['object_type'] = contact_item.id;
+
+                $.ajax({
+                    type: 'POST',
+                    url: '{% url "contact-actions" %}',
+                    dataType: 'json',
+                    data: {'action': 'delete', 'payload': JSON.stringify(payload)},
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    success: function(response){
+                        if (response['success'] == 'true'){
+                            contacts.forEach(contact => {
+                                if (contact.querySelector('input[type=checkbox]').checked){
+                                    contact.remove();
+                                }
+                            });
+                        }
+                        else{
+                            alert('Something went wrong. Please try again.');
+                        }
+                    },
+                    error: function(error){
+                        console.log(error);
+                    }
+                });
+            });
+
+            add_form.addEventListener('pointerover', () => {
+                if ((add_input.value == '' || !add_input.checkValidity()) && contact_file.files.length == 0){
+                    add_btn.style.pointerEvents = 'none';
+                }
+                else{
+                    add_btn.style.pointerEvents = 'auto';
+                }
+
+                if (contact_file.files.length > 0){
+                    var contact_file_name = contact_file.files[0].name;
+                    var contact_file_size = contact_file.files[0].size;
+                    var contact_file_type = JSON.stringify(contact_file.files[0].type);
+                    file_detail.innerText = contact_file_name + ' (' + returnFileSize(contact_file_size) + ')';
+                    if (contact_file_type == 'text/plain' || contact_file_type == 'text/csv' || contact_file_size < 1048576){
+                        add_btn.style.pointerEvents = 'auto';
+                        add_btn.innerText = 'Add';
+                        file_detail.classList.remove('error');
+                    }
+                    else{
+                        add_btn.style.pointerEvents = 'none';
+                        add_btn.innerText = 'File must be a text or CSV file and less than 1MB';
+                        file_detail.classList.add('error');
+                    }
+                }else{
+                    file_detail.innerText = 'No file selected';
+                }
+               
+            });
+
+            add_contact.addEventListener('click', () => {
+                add_form.classList.toggle('show_add_form');
+                add_contact.classList.toggle('active');
+            });
+
+        });
+
+        
+    };
+</script>
+{% endblock script %}
+
+        
+ 
