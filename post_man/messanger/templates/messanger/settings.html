@@ -682,6 +682,24 @@
             }, 200)
         }
 
+        if(window.location.href.endsWith('?e-profiles')){
+            setTimeout(() => { 
+                email_profiles = document.querySelector('#email_profiles');
+                if (email_profiles){
+                    email_profiles.scrollIntoView();
+                }
+            }, 200)
+        }
+
+        if(window.location.href.endsWith('?m-profiles')){
+            setTimeout(() => { 
+                msg_profiles = document.querySelector('#msg_profiles');
+                if (msg_profiles){
+                    msg_profiles.scrollIntoView();
+                }
+            }, 200)
+        }
+
         if(window.location.href.endsWith('?cookies')){
             setTimeout(() => { 
                 document.querySelectorAll('.setting').forEach((setting)=>{

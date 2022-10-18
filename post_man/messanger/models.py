@@ -49,7 +49,7 @@ class TextMessage(models.Model):
     send_to = models.ManyToManyField(PhoneNumber, max_length=16, related_name="directed_sms", default=None, verbose_name="proposed receivers")
     sent_to = models.ManyToManyField(PhoneNumber, max_length=16, default=None, blank=True, related_name="sms_received", verbose_name="receivers")
     date_created = models.DateTimeField(auto_now_add=True)
-    date_sent = models.DateTimeField(default=timezone.now) 
+    date_sent = models.DateTimeField(default=None, null=True, blank=True)
     is_sent = models.BooleanField(default=False)
     is_draft = models.BooleanField(default=False)
 
@@ -57,7 +57,7 @@ class TextMessage(models.Model):
         return self.message
 
     class Meta:
-        ordering = ['-date_created']
+        ordering = ['-date_created', '-date_sent']
         verbose_name_plural = "Text Messages"
 
 
@@ -148,18 +148,22 @@ class TextMessage(models.Model):
 
             if len(self.sent_to.all()) == len(self.send_to.all()):
                 self.is_sent = True
+                self.date_sent = timezone.now()
                 self.is_draft = False
                 self.save()
                 return True, 'Message sent successfully.'
             elif len(self.sent_to.all()) > 0 and len(self.sent_to.all()) < len(self.send_to.all()):
                 self.is_sent = True
+                self.date_sent = timezone.now()
                 self.is_draft = False
                 self.save()
                 return True, 'Message sent! Some failed'
             else:
                 return False, 'Message failed to send. Might be your internet connectivity.'
         else:
-            return False, 'You have no active messaging profiles. Please create or enable one and retry. You can do this <a href="{}?add-m-profile">here</a>'.format(settings_url)
+            if len(self.sent_by.message_profiles.all()) > 0:
+                return False, 'No active messaging profile. Please <a href="{}?m-profiles">activate</a> one.'.format(settings_url)
+            return False, 'You have no active messaging profile. Please create or enable one and retry. You can do this <a href="{}?add-m-profile">here</a>'.format(settings_url)
     
     def send_via_twilio(self, sender, receiver):
         '''Sends the message via twilio'''
@@ -238,7 +242,7 @@ class Email(models.Model):
     send_to = models.ManyToManyField(EmailAddress, related_name="directed_mails", default=None, verbose_name="proposed receivers")
     sent_to = models.ManyToManyField(EmailAddress, related_name="mails_received", verbose_name="receivers")
     date_created = models.DateTimeField(auto_now_add=True)
-    date_sent = models.DateTimeField(default=timezone.now)
+    date_sent = models.DateTimeField(default=None, null=True, blank=True)
     is_sent = models.BooleanField(default=False)
     is_html = models.BooleanField(default=False)
     is_draft = models.BooleanField(default=False)
@@ -249,7 +253,7 @@ class Email(models.Model):
         return self.body
 
     class Meta:
-        ordering = ['-date_created']
+        ordering = ['-date_created', '-date_sent']
 
 
     def send(self, receivers=None):
@@ -374,11 +378,13 @@ class Email(models.Model):
 
                     if len(self.sent_to.all()) == len(self.send_to.all()):
                         self.is_sent = True
+                        self.date_sent = timezone.now()
                         self.is_draft = False
                         self.save()
                         return True, 'Email sent successfully.'
                     elif len(self.sent_to.all()) > 0 and len(self.sent_to.all()) < len(self.send_to.all()):
                         self.is_sent = True
+                        self.date_sent = timezone.now()
                         self.is_draft = False
                         self.save()
                         return True, 'Email sent! Some failed'
@@ -388,7 +394,9 @@ class Email(models.Model):
                     print(e)
                     return False, f'Failed to send email: {e}'
             else:
-                return False, 'You have no active emailing profiles. Please create or enable one and retry. You can do this <a href="{}?add-e-profile">here</a>'.format(settings_url)
+                if len(self.sent_by.message_profiles.all()) > 0:
+                    return False, 'No active emailing profile. Please <a href="{}?e-profiles">activate</a> one.'.format(settings_url)
+                return False, 'You have no active emailing profile. Please create or enable one and retry. You can do this <a href="{}?add-e-profile">here</a>'.format(settings_url)
 
 
     def delete(self, *args, **kwargs):

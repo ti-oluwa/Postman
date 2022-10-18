@@ -106,7 +106,7 @@
                             </div>
                             <div class="message_content">
                                 <div class="mail_header">
-                                    <h4>{{ email.subject | urlize | telify }}</h4>
+                                    <h4>{{ email.subject | title }}</h4>
                                     {% if email.bcc %}
                                         <span>Bcc: {{ email.bcc }}</span>
                                     {% endif %}
@@ -115,7 +115,7 @@
                                     {% endif %}
                                 </div>
                                 {% if not email.is_html %}
-                                    <p>{{ email.body | linebreaks | urlize | telify }}</p>
+                                    <p>{{ email.body | linebreaks | urlize }}</p>
                                 {% else %}
                                     <p class="container">{{ email.body | linebreaks }}</p>
                                 {% endif %}

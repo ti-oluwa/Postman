@@ -43,7 +43,7 @@
                         <li><a href="{% url 'emails' %}">Mail</a></li>
                         {% if request.user.is_authenticated %}
                             <li><a href="{% url 'contacts' %}">Contacts</a></li>
-                            {% if request.user.purchases %}
+                            {% if request.user.purchases.all|length > 0 %}
                                 <li><a href="{% url 'purchase-history' request.user.id %}">Purchases</a></li>
                             {% endif %}
                             <li><a href="{% url 'settings' %}">Settings</a></li>

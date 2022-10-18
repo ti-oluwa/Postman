@@ -102,7 +102,7 @@
                                 <p class="succinct">{{ message.message | truncatewords:10 }}.</p>
                             </div>
                             <div class="message_content">
-                                <p>{{ message.message | linebreaks | urlize | telify }}</p>
+                                <p>{{ message.message | linebreaks | urlize }}</p>
                                 <p id="minor">
                                 {% if message.sent_to.all|length  > 0 and message.is_sent %}
                                     <a>See recipients</a> - 

@@ -27,14 +27,16 @@ def mailify(text, autoescape=True):
 @register.filter(needs_autoescape=True)
 @stringfilter
 def telify(text, autoescape=True):
+    """NEEDS TO BE FIXED"""
     """Converts a string to a tel link"""
     if autoescape:
         esc = conditional_escape
     else:
         esc = lambda x: x
-    text = re.split(r'[\s`,;.]', text)
+    text = ' '.join(re.split(r'[\s`,;.]', text))
     for i, word in enumerate(text, start=0):
-        if '+' in word and len(word) >= 10:
+        if '+' in word and len(word) >= 10 and len(word) <= 20:
+            print(word)
             text[i] = '<a href="tel:%s">%s</a>' % (esc(word), esc(word))
     return mark_safe(' '.join(text))
 
@@ -58,7 +60,7 @@ def mytimesincer(date_time: datetime, autoescape=True):
         time_since = ''
         if time_delta <= timedelta(minutes=1):
             time_since = 'Just Now'
-        elif now.date().day - date_time.date().day == 1:
+        elif time_delta <= timedelta(days=2) and (now.date().day - date_time.date().day) == 1:
             time_since = 'Yesterday'
         elif time_delta > timedelta(minutes=1) and time_delta < timedelta(days=1):
             time_since = date_time.strftime('%H:%M')

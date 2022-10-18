@@ -431,6 +431,7 @@ class AjaxView(LoginRequiredMixin, View):
                     black_listed_words = [bad_word.word.lower() for bad_word in BlackListedWord.objects.all()]
                     bad_words = [word for word in message_list if word.lower() in black_listed_words]
                     if bad_words != []:
+                        bad_words = list(set(bad_words))
                         if len(bad_words) == 1:
                             messages.error(request, f'Failed to send message: {", ".join(bad_words)} is not allowed in message')
                         else:
@@ -533,6 +534,7 @@ class AjaxView(LoginRequiredMixin, View):
                     black_listed_words = [bad_word.word.lower() for bad_word in BlackListedWord.objects.all()]
                     bad_words = [word for word in message_list if word.lower() in black_listed_words]
                     if bad_words != []:
+                        bad_words = list(set(bad_words))
                         if len(bad_words) == 1:
                             messages.error(request, f'Failed to send message: {", ".join(bad_words)} is not allowed in message')
                         else:
@@ -641,13 +643,12 @@ class AjaxView(LoginRequiredMixin, View):
                     else:
                         cc = None
                     body = message_form['body']
-                    if len(body) > 4500:
-                        messages.error(request, 'Failed to send mail: Mail body should not exceed 4500 characters')
-                        return JsonResponse(data={'success':'false',}, status=400)
+
                     message_list = re.split(r"[\s,.;\-\?\!\(\)\:~'\[\]\{\}&_@#\*\^\>\<]", body.lower())
                     black_listed_words = [bad_word.word.lower() for bad_word in BlackListedWord.objects.all()]
                     bad_words = [word for word in message_list if word.lower() in black_listed_words]
                     if bad_words != []:
+                        bad_words = list(set(bad_words))
                         if len(bad_words) == 1:
                             messages.error(request, f'Failed to send message: {", ".join(bad_words)} is not allowed in mails')
                         else:
@@ -661,6 +662,11 @@ class AjaxView(LoginRequiredMixin, View):
                     else:
                         new_email = Email.objects.create(subject=subject, bcc=bcc, cc=cc, body=body, sent_by=request.user)
                     new_email.save()
+                    if len(body) > 4500 and not new_email.is_html:
+                        new_email.delete()
+                        messages.error(request, 'Failed to send mail: Mail body should not exceed 4500 characters')
+                        return JsonResponse(data={'success':'false',}, status=400)
+
                     for file in attached_files:
                         attachment = Attachment.objects.create(file=file, added_by=request.user)
                         attachment.save()
@@ -765,13 +771,12 @@ class AjaxView(LoginRequiredMixin, View):
                     else:
                         cc = None
                     body = message_form['body']
-                    if len(body) > 4500:
-                        messages.error(request, 'Failed to save mail: Mail body should not exceed 4500 characters')
-                        return JsonResponse(data={'success':'false',}, status=400)
+                    
                     message_list = re.split(r"[\s,.;\-\?\!\(\)\:~'\[\]\{\}&_@#\*\^\>\<]", body.lower())
                     black_listed_words = [bad_word.word.lower() for bad_word in BlackListedWord.objects.all()]
                     bad_words = [word for word in message_list if word.lower() in black_listed_words]
                     if bad_words != []:
+                        bad_words = list(set(bad_words))
                         if len(bad_words) == 1:
                             messages.error(request, f'Failed to save message: {", ".join(bad_words)} is not allowed in mails')
                         else:
@@ -786,6 +791,11 @@ class AjaxView(LoginRequiredMixin, View):
                         new_email = Email.objects.create(subject=subject, bcc=bcc, cc=cc, body=body, sent_by=request.user)
                     new_email.is_draft = True
                     new_email.save()
+
+                    if len(body) > 4500 and not new_email.is_html:
+                        new_email.delete()
+                        messages.error(request, 'Failed to save mail: Mail body should not exceed 4500 characters')
+                        return JsonResponse(data={'success':'false',}, status=400)
                     # add all receivers to the new mail
                     for receiver in receivers:
                         new_email.send_to.add(receiver)
