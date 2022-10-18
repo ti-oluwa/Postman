@@ -144,7 +144,7 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_TZ = False
+USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -164,7 +164,7 @@ MEDIA_URL = 'media/'
 
 SESSION_COOKIE_AGE = 86400 * 3
 
-if DEBUG:
+if not DEBUG:
     SESSION_COOKIE_SECURE = True
 
 # Default primary key field type
