@@ -25,6 +25,7 @@
 {% endblock content %}
     
 {% block script %}
+<script type="text/javascript">
     window.onclick = (event) => {
         if (document.querySelector('.menu_icon').contains(event.target)){
             document.querySelector('.menu').classList.toggle('show_menu');
@@ -33,4 +34,5 @@
             document.querySelector('.menu').classList.remove('show_menu');
         }
     }
+</script>
 {% endblock script %}

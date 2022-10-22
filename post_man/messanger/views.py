@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
@@ -7,11 +9,12 @@ from django.db.utils import IntegrityError
 from users.models import EmailProfile, MessageProfile
 from .models import EmailAddress, PhoneNumber, TextMessage, Email, Attachment, BlackListedWord
 from django.http import HttpResponse, JsonResponse
-import json, mimetypes, os, re, time
+import json, mimetypes, os, re, time, math
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.utils.encoding import smart_str
 from django.contrib.auth import get_user_model
+from django.db.models.functions import Lower
 
 CustomUser = get_user_model()
 
@@ -1075,3 +1078,74 @@ class ContactsAjaxView(LoginRequiredMixin, View):
                                 pass
                     return JsonResponse(data={'success': 'true'}, status=200)
 
+
+def get_custom_timesince(date_time: datetime):
+    if date_time and isinstance(date_time, datetime):
+        now = timezone.now()
+        time_delta = max(now - date_time, timedelta(seconds=0))
+        time_since = ''
+        if time_delta <= timedelta(minutes=1):
+            time_since = 'Just Now'
+        elif time_delta <= timedelta(days=2) and (now.date().day - date_time.date().day) == 1:
+            time_since = f"Yesterday {date_time.strftime('%H:%M')}"
+        elif time_delta > timedelta(minutes=1) and time_delta < timedelta(days=1):
+            time_since = date_time.strftime('%H:%M')
+        elif time_delta >= timedelta(days=1) and time_delta < timedelta(days=7):
+            time_since = f"{date_time.strftime('%a %d')} {date_time.strftime('%H:%M')}"
+        elif time_delta >= timedelta(days=7) and time_delta < timedelta(days=365):
+            time_since = f"{date_time.strftime('%d %b')} {date_time.strftime('%H:%M')}"
+        elif time_delta >= timedelta(days=365):
+            time_since = date_time.strftime('%d %b %Y')
+        return time_since
+    return date_time or None
+
+
+class AjaxSearchView(LoginRequiredMixin, View):
+    model1 = Email
+    model2 = TextMessage
+
+    def post(self, request, *args, **kwargs):
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        user = request.user
+
+        if is_ajax:
+            try:
+                object_type = str(request.POST['object_type'])
+                search_query = str(request.POST['search_query']).strip()
+            except KeyError:
+                return JsonResponse(data={'success': 'false'}, status=400)
+            search_results = []
+            data = {}
+
+            if object_type == 'emails' and search_query:
+                search_results += [result.id for result in self.model1.objects.filter(sent_by=user, subject__icontains=search_query)]
+                search_results += [result.id for result in self.model1.objects.filter(sent_by=user, body__icontains=search_query)]
+                search_results+= [result.id for result in self.model1.objects.filter(sent_by=user, bcc__icontains=search_query)]
+                search_results += [result.id for result in self.model1.objects.filter(sent_by=user, cc__icontains=search_query)]
+                search_results = self.model1.objects.filter(id__in=search_results, sent_by=user).order_by(Lower('subject'), '-date_sent', '-date_created')
+                for result in search_results:
+                    if not result.is_html:
+                        data[f'id-{result.id}'] = {
+                            'subject': result.subject,
+                            's_body': ' '.join( result.body.split()[:int( min(15, math.ceil(len(result.body.split()) * 0.75) ) )] )+'...',
+                            'date': get_custom_timesince(result.date_sent or result.date_created),
+                        }
+                    else:
+                        data[f'id-{result.id}'] = {
+                            'subject': result.subject,
+                            's_body': 'HTML message',
+                            'date': get_custom_timesince(result.date_sent or result.date_created),
+                        }
+
+            elif object_type == 'sms' and search_query:
+                search_results += [result.id for result in self.model2.objects.filter(sent_by=user, message__icontains=search_query)]
+                search_results = self.model2.objects.filter(id__in=search_results, sent_by=user).order_by(Lower('message'), '-date_sent', '-date_created')
+                for result in search_results:
+                    data[f'id-{result.id}'] ={
+                        'body': ' '.join( result.message.split()[:int( min(20, math.ceil(len(result.message.split()) * 0.75) ) )] )+'...',
+                        'date': get_custom_timesince(result.date_sent or result.date_created),
+                    } 
+            if data:
+                return JsonResponse(data={'success': 'true', 'data': data}, status=200)
+            return JsonResponse(data={'success': 'false'}, status=200)
+                

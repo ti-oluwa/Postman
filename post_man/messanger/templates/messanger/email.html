@@ -41,6 +41,16 @@
                 <img src="{% static 'images/folder.svg' %}" alt="">
             </div>
 
+            {% if emails %}
+            <div class="search">
+                <div class="search_bar">
+                    <input type="search" name="search" id="search_field" class="search_field" placeholder="Search mails..." title="Search for emails by title or body contents">
+                </div>
+                <ul class="search_results">
+                </ul>
+            </div>
+            {% endif %}
+
             <div class="messages">
                 {% if emails %} 
                     <div class="select_all">
@@ -51,7 +61,7 @@
                         <p>Delete</p>
                     </div>
                     {% for email in emails %}
-                        <div class="message">
+                        <div class="message" id="{{ email.id }}">
                             {% if email.is_sent %}
                             <div class="message_summary">
                             {% elif not email.is_sent and not email.is_draft %}
@@ -137,7 +147,12 @@
                                 {% elif email.send_to.all|length > 0 and not email.is_sent and email.is_draft %}
                                     <a style="color: #888 !important;">See recipients</a> - 
                                 {% endif %}
-                                {{ email.date_sent| time:'H:i' }}</p>
+                                {% if email.date_sent %}
+                                    {{ email.date_sent| time:'H:i' }}
+                                {% else %}
+                                    {{ email.date_created| time:'H:i' }}
+                                {% endif %}
+                                </p>
                                 <div class="retry_del">
                                     {% if not email.is_sent and not email.is_draft %}
                                         <span><a href="{% url 'retry' %}?type=email&&pk={{email.id}}">retry</a></span>
@@ -431,10 +446,58 @@
                 });
             };
         };
+
+        const search = document.querySelector('.search');
+        if (search){
+            var offset = search.offsetTop - document.documentElement.scrollTop;
+            if (offset <= 0){
+                search.classList.add('sticky');
+            }
+            else if (offset > 20){
+                search.classList.remove('sticky');
+            }
+        }
     }
 
 
     window.onload = () => {
+
+        var search_field = document.querySelector('#search_field')
+
+        search_field.addEventListener('input', (e)=>{
+            e.stopImmediatePropagation();
+            $.ajax({
+                url: "{% url 'search' %}",
+                method: 'POST',
+                dataType: 'json',
+                data: {
+                    'object_type': 'emails',
+                    'search_query': search_field.value,
+                },
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                success: function(response){
+                    if (response['success'] == 'true'){
+                        data = response['data']
+                        if (data){
+                            document.querySelector('.search_results').style.display = 'flex';
+                            document.querySelector('.search_results').innerHTML = '';
+                            for(var [email_id, email_data] of Object.entries(data)){
+                                document.querySelector('.search_results').innerHTML += `<li class='result' id=${email_id.replace('id-', '')}>${email_data['subject']} <p>${email_data['s_body']} - ${email_data['date']}</p></li>`
+                            };
+                        }else{
+                            document.querySelector('.search_results').style.display = 'none';
+                        };
+
+                    }else{
+                        document.querySelector('.search_results').style.display = 'none';
+                    };
+                }
+            })
+        });
+
 
         if(window.location.href.endsWith('?send')){
             setTimeout(() => { 
@@ -501,9 +564,8 @@
         // }, 1000);
 
         if (messages.length != 0) {
-            // messages[0].scrollIntoView();
+
             // shows and hides message content
-        
             messages.forEach(message => {
                 message.querySelector('.message_summary').addEventListener('click', (e) => {
                     if (!document.querySelector('.contact_popup').classList.contains('contact_popup_open') && !document.querySelector('.message_popup').classList.contains('show_message_popup') && !message.querySelector('input').contains(e.target)) {   
@@ -824,7 +886,33 @@
             document.querySelector('.menu').classList.remove('show_menu');
         }
 
+        if(!document.querySelector('#search_field').contains(event.target) && !document.querySelector('.search_results').contains(event.target)){
+            document.querySelector('.search_results').style.display = 'none';
+        }
+
         var messages = document.querySelectorAll('.message');
+        var results = document.querySelectorAll('.result')
+
+        if (results){
+            results.forEach(result=>{
+                if(result.contains(event.target)){
+                    document.querySelector('.search_results').style.display = 'none';
+                    messages.forEach(message=>{
+                        if (message.id == result.id){
+                            message.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'
+                            });
+                            message.classList.add('chosen')
+                            setTimeout(()=>{
+                                message.classList.remove('chosen')
+                            }, 2000);
+                        }
+                    })
+                }
+            })
+        }
+
         // close notification shade on outside click
         if(document.querySelector('.notifications') && !document.querySelector('.notification_icon').contains(event.target) && !document.querySelector('.notifications').contains(event.target) && document.querySelector('.notifications').classList.contains('open_shade')){
             document.querySelector('.notifications').classList.remove('open_shade')

@@ -40,6 +40,16 @@
                 <img src="{% static 'images/folder.svg' %}" alt="">
             </div>
 
+            {% if text_messages%}
+            <div class="search">
+                <div class="search_bar">
+                    <input type="search" name="search" id="search_field" class="search_field" placeholder="Search messages..." title="Search for messages by body content.">
+                </div>
+                <ul class="search_results">
+                </ul>
+            </div>
+            {% endif %}
+
             <div class="messages">
                 {% if text_messages %} 
                     <div class="select_all">
@@ -50,7 +60,7 @@
                         <p>Delete</p>
                     </div>
                     {% for message in text_messages %}
-                        <div class="message">
+                        <div class="message" id="{{ message.id }}">
                             {% if message.is_sent %}
                             <div class="message_summary">
                             {% elif not message.is_sent and not message.is_draft %} 
@@ -108,10 +118,15 @@
                                     <a>See recipients</a> - 
                                 {% elif message.sent_to.all|length == 0 and not message.is_sent and not message.is_draft %}
                                     <a style="color: coral !important;">See recipients</a> - 
-                                {% elif message.sent_to.all|length == 0 and not message.is_sent and not message.is_draft %}
+                                {% elif message.sent_to.all|length == 0 and not message.is_sent and message.is_draft %}
                                     <a style="color: #888 !important;">See recipients</a> - 
                                 {% endif %}
-                                {{ message.date_sent| time:'H:i' }}</p>
+                                {% if message.date_sent %}
+                                    {{ message.date_sent| time:'H:i' }}
+                                {% else %}
+                                    {{ message.date_created| time:'H:i' }}
+                                {% endif %}
+                                </p>
                                 <div class="retry_del">
                                     {% if not message.is_sent and not message.is_draft %}
                                         <span><a href="{% url 'retry' %}?type=sms&&pk={{message.id}}">retry</a></span>
@@ -379,10 +394,59 @@
                 });
             };
         };
+
+        const search = document.querySelector('.search');
+        if (search){
+            var offset = search.offsetTop - document.documentElement.scrollTop;
+            if (offset <= 0){
+                search.classList.add('sticky');
+            }
+            else if (offset > 20){
+                search.classList.remove('sticky');
+            }
+        }
+        
     }
 
 
     window.onload = () => {
+
+        var search_field = document.querySelector('#search_field')
+
+        search_field.addEventListener('input', (e)=>{
+            e.stopImmediatePropagation();
+            $.ajax({
+                url: "{% url 'search' %}",
+                method: 'POST',
+                dataType: 'json',
+                data: {
+                    'object_type': 'sms',
+                    'search_query': search_field.value,
+                },
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                success: function(response){
+                    if (response['success'] == 'true'){
+                        data = response['data']
+                        if (data){
+                            document.querySelector('.search_results').style.display = 'flex';
+                            document.querySelector('.search_results').innerHTML = '';
+                            for(var [msg_id, msg_data] of Object.entries(data)){
+                                document.querySelector('.search_results').innerHTML += `<li class='result' id=${msg_id.replace('id-', '')}>${msg_data['body']} <p>${msg_data['date']}</p></li>`
+                            };
+                        }else{
+                            document.querySelector('.search_results').style.display = 'none';
+                        };
+
+                    }else{
+                        document.querySelector('.search_results').style.display = 'none';
+                    };
+                }
+            })
+        });
+
 
         if(window.location.href.endsWith('?send')){
             setTimeout(() => { 
@@ -458,7 +522,6 @@
         // }, 1000);
 
         if (messages.length != 0) {
-            // messages[0].scrollIntoView();
 
             // shows and hides message content
             messages.forEach(message => {
@@ -782,7 +845,34 @@
             document.querySelector('.menu').classList.remove('show_menu');
         }
 
+        if(!document.querySelector('#search_field').contains(event.target) && !document.querySelector('.search_results').contains(event.target)){
+            document.querySelector('.search_results').style.display = 'none';
+        }
+
         var messages = document.querySelectorAll('.message');
+
+        var results = document.querySelectorAll('.result')
+
+        if (results){
+            results.forEach(result=>{
+                if(result.contains(event.target)){
+                    document.querySelector('.search_results').style.display = 'none';
+                    messages.forEach(message=>{
+                        if (message.id == result.id){
+                            message.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'                           
+                            });
+                            message.classList.add('chosen')
+                            setTimeout(()=>{
+                                message.classList.remove('chosen')
+                            }, 2000);
+                        }
+                    })
+                }
+            })
+        }
+
         // close notification shade on outside click
         if(document.querySelector('.notifications') && !document.querySelector('.notification_icon').contains(event.target) && !document.querySelector('.notifications').contains(event.target) && document.querySelector('.notifications').classList.contains('open_shade')){
             document.querySelector('.notifications').classList.remove('open_shade')

@@ -208,7 +208,7 @@ class LoginView(UserPassesTestMixin, View):
 
     def post(self, request, *args, **kwargs):
         try:
-            username = request.POST['username']
+            username = request.POST['username'].strip()
             password = request.POST['password']
         except KeyError:
             messages.error(request, 'Oops! Something went wrong')
