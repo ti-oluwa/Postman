@@ -57,7 +57,7 @@ class TextMessage(models.Model):
         return self.message
 
     class Meta:
-        ordering = ['-date_created', '-date_sent']
+        ordering = ['-date_sent', '-date_created']
         verbose_name_plural = "Text Messages"
 
 
@@ -253,7 +253,7 @@ class Email(models.Model):
         return self.body
 
     class Meta:
-        ordering = ['-date_created', '-date_sent']
+        ordering = ['-date_sent', '-date_created']
 
 
     def send(self, receivers=None):
